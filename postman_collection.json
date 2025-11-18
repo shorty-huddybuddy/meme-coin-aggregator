@@ -1,0 +1,300 @@
+{
+  "info": {
+    "name": "Meme Coin Aggregator API",
+    "description": "Real-time meme coin data aggregation service with filtering, sorting, and pagination",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "health"]
+        },
+        "description": "Check API health status"
+      }
+    },
+    {
+      "name": "Get All Tokens",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/tokens?limit=20&sortBy=volume&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "tokens"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20",
+              "description": "Number of tokens per page (1-100)"
+            },
+            {
+              "key": "sortBy",
+              "value": "volume",
+              "description": "Sort field: volume, price_change, market_cap, liquidity, transaction_count"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc",
+              "description": "Sort order: asc or desc"
+            },
+            {
+              "key": "cursor",
+              "value": "",
+              "description": "Pagination cursor",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Get all tokens with default sorting by volume"
+      }
+    },
+    {
+      "name": "Get Tokens - Filter by Volume",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/tokens?limit=20&minVolume=1000&maxVolume=10000",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "tokens"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "key": "minVolume",
+              "value": "1000",
+              "description": "Minimum volume in SOL"
+            },
+            {
+              "key": "maxVolume",
+              "value": "10000",
+              "description": "Maximum volume in SOL"
+            }
+          ]
+        },
+        "description": "Filter tokens by volume range"
+      }
+    },
+    {
+      "name": "Get Tokens - Filter by Market Cap",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/tokens?limit=20&minMarketCap=500&sortBy=market_cap&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "tokens"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "key": "minMarketCap",
+              "value": "500",
+              "description": "Minimum market cap in SOL"
+            },
+            {
+              "key": "sortBy",
+              "value": "market_cap"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ]
+        },
+        "description": "Filter tokens by market cap and sort by market cap descending"
+      }
+    },
+    {
+      "name": "Get Tokens - Sort by Price Change",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/tokens?limit=20&sortBy=price_change&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "tokens"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "key": "sortBy",
+              "value": "price_change",
+              "description": "Sort by 1hr price change"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc"
+            }
+          ]
+        },
+        "description": "Get tokens sorted by price change (top gainers)"
+      }
+    },
+    {
+      "name": "Get Tokens - Filter by Protocol",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/tokens?limit=20&protocol=Raydium",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "tokens"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "key": "protocol",
+              "value": "Raydium",
+              "description": "Filter by DEX protocol"
+            }
+          ]
+        },
+        "description": "Filter tokens by specific protocol"
+      }
+    },
+    {
+      "name": "Get Tokens - Pagination",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/tokens?limit=10&cursor={{nextCursor}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "tokens"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "cursor",
+              "value": "{{nextCursor}}",
+              "description": "Use nextCursor from previous response"
+            }
+          ]
+        },
+        "description": "Get next page of tokens using cursor"
+      }
+    },
+    {
+      "name": "Search Tokens - By Symbol",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/tokens/search?q=BONK&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "tokens", "search"],
+          "query": [
+            {
+              "key": "q",
+              "value": "BONK",
+              "description": "Search query (symbol, name, or address)"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Search for tokens by symbol"
+      }
+    },
+    {
+      "name": "Search Tokens - By Name",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/tokens/search?q=Solana&limit=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "tokens", "search"],
+          "query": [
+            {
+              "key": "q",
+              "value": "Solana",
+              "description": "Search query"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Search for tokens by name"
+      }
+    },
+    {
+      "name": "Invalidate Cache",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/cache/invalidate",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cache", "invalidate"]
+        },
+        "description": "Invalidate all cached data to force fresh API calls"
+      }
+    },
+    {
+      "name": "Rapid API Call Test (5 calls)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// This request simulates rapid API calls",
+              "console.log('Making rapid API call...');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/tokens?limit=5",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "tokens"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        },
+        "description": "Use Postman Runner to execute this 5-10 times rapidly to test caching and rate limiting"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "nextCursor",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
