@@ -1,4 +1,5 @@
 import express, { Application } from 'express';
+import path from 'path';
 import http from 'http';
 import cors from 'cors';
 import compression from 'compression';
@@ -44,19 +45,24 @@ class App {
     // API routes
     this.app.use('/api', apiRoutes);
 
-    // Root endpoint
+    // Root endpoint: serve demo UI if present, otherwise show API JSON
     this.app.get('/', (_req, res) => {
-      res.json({
-        success: true,
-        message: 'Meme Coin Aggregator API',
-        version: '1.0.0',
-        endpoints: {
-          tokens: '/api/tokens',
-          search: '/api/tokens/search',
-          health: '/api/health',
-          websocket: 'ws://localhost:' + config.server.port,
-        },
-      });
+      const demoPath = path.join(process.cwd(), 'public', 'demo.html');
+      try {
+        return res.sendFile(demoPath);
+      } catch (e) {
+        return res.json({
+          success: true,
+          message: 'Meme Coin Aggregator API',
+          version: '1.0.0',
+          endpoints: {
+            tokens: '/api/tokens',
+            search: '/api/tokens/search',
+            health: '/api/health',
+            websocket: 'ws://localhost:' + config.server.port,
+          },
+        });
+      }
     });
   }
 

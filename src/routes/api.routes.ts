@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AggregationService } from '../services/aggregation.service';
+import { cacheManager } from '../services/cache.service';
 import { asyncHandler } from '../middleware/error.middleware';
 import { FilterOptions, SortOptions, ApiResponse, TokenData } from '../types';
 import { decodeCursor, generateCursor } from '../utils/helpers';
@@ -134,6 +135,27 @@ router.post(
     });
   })
 );
+
+  /**
+   * GET /api/cache/status
+   * Returns whether Redis is used or in-memory fallback and sample keys
+   */
+  router.get(
+    '/cache/status',
+    asyncHandler(async (_req, res) => {
+      const usingInMemory = cacheManager.isUsingInMemory();
+      const keys = await cacheManager.keys('*');
+
+      res.json({
+        success: true,
+        data: {
+          usingInMemory,
+          keyCount: keys.length,
+          sampleKeys: keys.slice(0, 20),
+        },
+      });
+    })
+  );
 
 /**
  * GET /api/health

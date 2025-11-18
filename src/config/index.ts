@@ -2,15 +2,39 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Parse Redis URL if provided (Railway format)
+const parseRedisUrl = () => {
+  const redisUrl = process.env.REDIS_URL;
+  if (redisUrl) {
+    try {
+      const url = new URL(redisUrl);
+      return {
+        host: url.hostname,
+        port: parseInt(url.port, 10) || 6379,
+        password: url.password || undefined,
+      };
+    } catch (e) {
+      console.warn('Failed to parse REDIS_URL, using individual env vars');
+    }
+  }
+  return {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD || undefined,
+  };
+};
+
+const redisConfig = parseRedisUrl();
+
 export const config = {
   server: {
     port: parseInt(process.env.PORT || '3000', 10),
     env: process.env.NODE_ENV || 'development',
   },
   redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD || undefined,
+    host: redisConfig.host,
+    port: redisConfig.port,
+    password: redisConfig.password,
     db: parseInt(process.env.REDIS_DB || '0', 10),
   },
   cache: {
