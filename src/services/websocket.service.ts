@@ -31,9 +31,29 @@ export class WebSocketService {
       this.sendInitialData(socket);
 
       // Handle subscriptions
-      socket.on('subscribe', (data: { filters?: unknown }) => {
+      socket.on('subscribe', (data: { filters?: Record<string, any> }) => {
+        // Store filters on socket for per-socket filtering
         // eslint-disable-next-line no-console
-        console.log(`Client ${socket.id} subscribed with filters:`, data.filters);
+        console.log(`Client ${socket.id} subscribed with filters:`, data?.filters);
+        try {
+          // Attach filters to socket.data so they persist across broadcasts
+          // @ts-ignore - socket.data is safe to use for storing session info
+          socket.data = socket.data || {};
+          // normalize numeric filters
+          const normalized: Record<string, any> = {};
+          if (data?.filters) {
+            for (const [k, v] of Object.entries(data.filters)) {
+              // try to coerce numeric values
+              const n = Number(v);
+              normalized[k] = Number.isNaN(n) ? v : n;
+            }
+          }
+          // @ts-ignore
+          socket.data.filters = normalized;
+        } catch (e) {
+          // ignore
+        }
+
         socket.emit('subscribed', { message: 'Successfully subscribed to token updates' });
       });
 
@@ -42,7 +62,7 @@ export class WebSocketService {
         console.log(`Client disconnected: ${socket.id}`);
       });
 
-      socket.on('error', (error) => {
+      socket.on('error', (error: any) => {
         // eslint-disable-next-line no-console
         console.error(`Socket error for ${socket.id}:`, error);
       });
@@ -52,11 +72,26 @@ export class WebSocketService {
   private async sendInitialData(socket: Socket): Promise<void> {
     try {
       const tokens = await this.aggregationService.getAllTokens();
+      // Apply any existing socket filters to the initial payload
+      // @ts-ignore
+      const filters: Record<string, any> = (socket.data && socket.data.filters) || {};
+
+      const matchesFilter = (token: TokenData) => {
+        if (filters.minVolume != null && token.volume_sol < filters.minVolume) return false;
+        if (filters.maxVolume != null && token.volume_sol > filters.maxVolume) return false;
+        if (filters.minMarketCap != null && token.market_cap_sol < filters.minMarketCap) return false;
+        if (filters.maxMarketCap != null && token.market_cap_sol > filters.maxMarketCap) return false;
+        if (filters.protocol && typeof filters.protocol === 'string' && token.protocol !== filters.protocol) return false;
+        return true;
+      };
+
+      const payload = tokens.filter(matchesFilter);
       const message: WebSocketMessage = {
         event: 'new_token',
-        data: tokens,
+        data: payload,
         timestamp: Date.now(),
       };
+
       socket.emit('initial_data', message);
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -121,23 +156,46 @@ export class WebSocketService {
         this.previousTokens.set(token.token_address, token);
       });
 
-      // Broadcast updates
-      if (updates.length > 0) {
-        const message: WebSocketMessage = {
-          event: 'price_update',
-          data: updates,
-          timestamp: Date.now(),
-        };
-        this.io.emit('price_update', message);
-      }
+      // Broadcast updates with per-socket filter support
+      if (updates.length > 0 || volumeSpikes.length > 0) {
+        // iterate connected sockets and send only matching tokens
+        const clients = Array.from(this.io.sockets.sockets.values()) as Socket[];
 
-      if (volumeSpikes.length > 0) {
-        const message: WebSocketMessage = {
-          event: 'volume_spike',
-          data: volumeSpikes,
-          timestamp: Date.now(),
-        };
-        this.io.emit('volume_spike', message);
+        for (const s of clients) {
+          // @ts-ignore
+          const filters: Record<string, any> = (s.data && s.data.filters) || {};
+
+          const matchesFilter = (token: TokenData) => {
+            // minVolume
+            if (filters.minVolume != null && token.volume_sol < filters.minVolume) return false;
+            if (filters.maxVolume != null && token.volume_sol > filters.maxVolume) return false;
+            if (filters.minMarketCap != null && token.market_cap_sol < filters.minMarketCap) return false;
+            if (filters.maxMarketCap != null && token.market_cap_sol > filters.maxMarketCap) return false;
+            if (filters.protocol && typeof filters.protocol === 'string' && token.protocol !== filters.protocol) return false;
+            return true;
+          };
+
+          const socketUpdates = updates.filter(matchesFilter);
+          const socketSpikes = volumeSpikes.filter(matchesFilter);
+
+          if (socketUpdates.length > 0) {
+            const message: WebSocketMessage = {
+              event: 'price_update',
+              data: socketUpdates,
+              timestamp: Date.now(),
+            };
+            s.emit('price_update', message);
+          }
+
+          if (socketSpikes.length > 0) {
+            const message: WebSocketMessage = {
+              event: 'volume_spike',
+              data: socketSpikes,
+              timestamp: Date.now(),
+            };
+            s.emit('volume_spike', message);
+          }
+        }
       }
     } catch (error) {
       // eslint-disable-next-line no-console
