@@ -306,7 +306,13 @@
                 return;
             }
 
-            socket = io('http://localhost:3000');
+            // Connect to the same origin that served this page so deployed site and phones work
+            try {
+                socket = io(); // defaults to the host that served the page
+            } catch (e) {
+                // Fallback to explicit origin
+                socket = io(location.protocol + '//' + location.host);
+            }
 
             socket.on('connect', () => {
                 updateStatus(true);
