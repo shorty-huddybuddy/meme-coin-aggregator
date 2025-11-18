@@ -45,25 +45,20 @@ class App {
     // API routes
     this.app.use('/api', apiRoutes);
 
-    // Root endpoint: serve demo UI if present, otherwise show API JSON
+    // Root endpoint: redirect to demo UI (served from /public) if present
     this.app.get('/', (_req, res) => {
-      const demoPath = path.join(process.cwd(), 'public', 'demo.html');
-      try {
-        return res.sendFile(demoPath);
-      } catch (e) {
-        return res.json({
-          success: true,
-          message: 'Meme Coin Aggregator API',
-          version: '1.0.0',
-          endpoints: {
-            tokens: '/api/tokens',
-            search: '/api/tokens/search',
-            health: '/api/health',
-            websocket: 'ws://localhost:' + config.server.port,
-          },
-        });
-      }
+      return res.redirect('/demo.html');
     });
+
+    // Log where the server will look for static files so deployments are easier to debug
+    const checkPaths = [
+      path.join(process.cwd(), 'public', 'demo.html'),
+      path.join(__dirname, '..', 'public', 'demo.html'),
+    ];
+    for (const p of checkPaths) {
+      // eslint-disable-next-line no-console
+      console.log('Static check:', p);
+    }
   }
 
   private initializeErrorHandling(): void {
