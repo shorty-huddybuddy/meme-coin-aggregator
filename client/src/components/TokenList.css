@@ -1,73 +1,112 @@
 .token-list {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
 }
 
 h1 {
-  color: #667eea;
+  color: white;
   margin-bottom: 0.5rem;
-  font-size: 2.5rem;
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
   text-align: center;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 .subtitle {
   text-align: center;
-  color: #666;
-  margin-bottom: 2rem;
+  color: white;
+  margin-bottom: 1rem;
+  font-size: clamp(0.875rem, 2vw, 1rem);
+  opacity: 0.95;
+}
+
+.summary {
+  text-align: center;
+  color: white;
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
 }
 
 .loading {
   text-align: center;
-  padding: 4rem;
+  padding: 4rem 1rem;
   font-size: 1.2rem;
-  color: #667eea;
+  color: white;
 }
 
 .table-container {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   overflow: hidden;
+  margin-bottom: 1rem;
 }
 
 .controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  align-items: center;
-  justify-content: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .controls label {
-  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
   color: #333;
+  font-weight: 500;
+  gap: 0.25rem;
 }
 
 .controls select,
 .controls input {
-  margin-left: 0.5rem;
-  padding: 0.35rem 0.5rem;
+  padding: 0.5rem;
   border-radius: 6px;
   border: 1px solid #ddd;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.controls select:focus,
+.controls input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .apply-btn {
-  background: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 0.5rem 0.75rem;
+  padding: 0.65rem 1rem;
   border-radius: 6px;
   cursor: pointer;
+  font-weight: 600;
+  align-self: end;
+  transition: transform 0.2s;
 }
 
 .apply-btn:hover {
-  filter: brightness(0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.apply-btn:active {
+  transform: translateY(0);
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px;
+}
+
+.table-container {
+  overflow-x: auto;
 }
 
 thead {
@@ -79,19 +118,19 @@ th {
   padding: 1rem;
   text-align: left;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 tbody tr {
   border-bottom: 1px solid #eee;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 tbody tr:hover {
   background: #f8f9ff;
-  transform: scale(1.01);
 }
 
 tbody tr.updated {
@@ -110,7 +149,7 @@ tbody tr.updated {
 
 td {
   padding: 1rem;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .token-info {
@@ -124,7 +163,7 @@ td {
 }
 
 .token-ticker {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #888;
 }
 
@@ -149,25 +188,125 @@ td {
   font-weight: 500;
 }
 
-@media (max-width: 768px) {
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.pagination-btn {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+  padding: 0.65rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Tablet responsiveness */
+@media (max-width: 1024px) {
   .token-list {
-    padding: 1rem;
+    padding: 0.75rem;
   }
 
-  h1 {
-    font-size: 1.8rem;
-  }
-
-  table {
-    font-size: 0.85rem;
+  .controls {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+    padding: 0.75rem;
   }
 
   th,
   td {
     padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .token-list {
+    padding: 0.5rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .controls label {
+    font-size: 0.875rem;
+  }
+
+  /* Hide table on mobile, show scrollable version */
+  .table-container {
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 600px;
+    font-size: 0.75rem;
+  }
+
+  th,
+  td {
+    padding: 0.5rem 0.35rem;
+    font-size: 0.75rem;
   }
 
   .token-info {
     min-width: 100px;
+  }
+
+  .token-name {
+    font-size: 0.85rem;
+  }
+
+  .token-ticker {
+    font-size: 0.7rem;
+  }
+
+  .pagination-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  table {
+    min-width: 500px;
+  }
+
+  th,
+  td {
+    padding: 0.4rem 0.25rem;
+    font-size: 0.7rem;
+  }
+
+  .controls {
+    padding: 0.75rem;
   }
 }

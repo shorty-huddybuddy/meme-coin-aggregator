@@ -1,8 +1,9 @@
 import { TokenList } from './components/TokenList'
+import './App.css'
 
 function App() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary via-purple-500 to-secondary">
+    <div className="app">
       <TokenList />
     </div>
   )
