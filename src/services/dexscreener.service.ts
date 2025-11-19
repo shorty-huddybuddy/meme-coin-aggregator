@@ -66,14 +66,19 @@ export class DexScreenerService {
 
         for (const query of queries) {
           try {
-            const cacheKey = `upstream:dexscreener:search:${query}`;
-            let tokens = await cacheManager.get<TokenData[]>(cacheKey);
-            if (!tokens) {
-              const response = await dexscreenerLimiter.schedule(() => this.client.get(`/search?q=${encodeURIComponent(query)}`));
-              tokens = this.transformPairs(response.data.pairs || []);
-              await cacheManager.set(cacheKey, tokens, config.cache.ttl);
+            // Try both uppercase and lowercase variants since search is case-sensitive
+            const variants = [query.toUpperCase(), query.toLowerCase()];
+            
+            for (const variant of variants) {
+              const cacheKey = `upstream:dexscreener:search:${variant}`;
+              let tokens = await cacheManager.get<TokenData[]>(cacheKey);
+              if (!tokens) {
+                const response = await dexscreenerLimiter.schedule(() => this.client.get(`/search?q=${encodeURIComponent(variant)}`));
+                tokens = this.transformPairs(response.data.pairs || []);
+                await cacheManager.set(cacheKey, tokens, config.cache.ttl);
+              }
+              allTokens.push(...tokens.slice(0, perQueryCap));
             }
-            allTokens.push(...tokens.slice(0, perQueryCap));
           } catch (error) {
             console.warn(`Skipped DexScreener query for ${query}`);
           }

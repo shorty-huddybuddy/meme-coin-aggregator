@@ -76,7 +76,7 @@ export const config = {
     // increase defaults so aggregator can gather more tokens per discovery query
     dexscreenerPerQueryCap: parseInt(process.env.DEXSCREENER_PER_QUERY_CAP || '100', 10),
     jupiterPerQueryCap: parseInt(process.env.JUPITER_PER_QUERY_CAP || '50', 10),
-    geckoTerminalEnabled: (process.env.GECKO_ENABLED || 'false').toLowerCase() === 'true',
+    geckoTerminalEnabled: (process.env.GECKO_ENABLED || 'true').toLowerCase() === 'true',
     geckoTerminalBase: process.env.GECKO_BASE || 'https://api.geckoterminal.com/api/v2',
   },
   coinGecko: {
