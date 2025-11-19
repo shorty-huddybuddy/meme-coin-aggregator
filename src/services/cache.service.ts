@@ -23,6 +23,15 @@ class CacheManager {
       console.log(`🔌 Attempting Redis connection to ${config.redis.host}:${config.redis.port}`);
       console.log(`   Auth: ${hasPassword ? 'yes' : 'NO'}, Password: ${passwordInfo}`);
       
+      // If no password and not localhost, skip Redis (Railway issue)
+      if (!hasPassword && config.redis.host !== 'localhost') {
+        console.warn('⚠️  No REDIS_PASSWORD provided for remote Redis. Check Railway variable references.');
+        console.log('   Expected: REDISPASSWORD=${{Redis.REDISPASSWORD}}');
+        console.log('⚡ Using in-memory cache instead.');
+        this.useInMemory = true;
+        return;
+      }
+      
       this.client = new Redis({
         host: config.redis.host,
         port: config.redis.port,
@@ -162,10 +171,20 @@ class CacheManager {
   }
 
   async disconnect(): Promise<void> {
-    if (this.client && this.isConnected) {
-      await this.client.quit();
+    if (this.useInMemory) {
+      this.inMemoryCache.clear();
+      return;
     }
-    this.isConnected = false;
+
+    if (this.client && this.isConnected) {
+      try {
+        await this.client.quit();
+        this.isConnected = false;
+      } catch (error) {
+        // Connection already closed, ignore error
+        console.log('Redis already disconnected');
+      }
+    }
     this.inMemoryCache.clear();
   }
 

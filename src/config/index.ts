@@ -47,6 +47,14 @@ if (process.env.NODE_ENV !== 'production') {
     hasPassword: !!redisConfig.password,
     passwordLength: redisConfig.password?.length || 0
   });
+} else {
+  // Production: log what env vars are available
+  console.log('Redis env vars:', {
+    REDIS_URL: !!process.env.REDIS_URL,
+    REDISHOST: !!process.env.REDISHOST,
+    REDISPORT: !!process.env.REDISPORT,
+    REDISPASSWORD: !!process.env.REDISPASSWORD
+  });
 }
 
 export const config = {
