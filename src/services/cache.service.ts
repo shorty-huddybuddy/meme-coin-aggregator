@@ -16,7 +16,8 @@ class CacheManager {
     }
 
     try {
-      console.log(`🔌 Attempting Redis connection to ${config.redis.host}:${config.redis.port}`);
+      const hasPassword = !!config.redis.password;
+      console.log(`🔌 Attempting Redis connection to ${config.redis.host}:${config.redis.port} (auth: ${hasPassword ? 'yes' : 'no'})`);
       
       this.client = new Redis({
         host: config.redis.host,
@@ -46,7 +47,10 @@ class CacheManager {
 
       this.client.on('error', (error: Error) => {
         console.error('❌ Redis error:', error.message);
-        if (!this.useInMemory && error.message.includes('ECONNREFUSED')) {
+        if (error.message.includes('NOAUTH')) {
+          console.error('⚠️  Redis authentication failed. Check REDIS_PASSWORD. Using in-memory cache.');
+          this.useInMemory = true;
+        } else if (!this.useInMemory && error.message.includes('ECONNREFUSED')) {
           console.log('⚠️  Redis connection failed. Using in-memory cache instead.');
           this.useInMemory = true;
         }

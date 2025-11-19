@@ -79,7 +79,7 @@ export interface FilterOptions {
 }
 
 export interface SortOptions {
-  sortBy?: 'volume' | 'price_change' | 'market_cap' | 'liquidity' | 'transaction_count';
+  sortBy?: 'volume' | 'price' | 'price_change' | 'market_cap' | 'liquidity' | 'transaction_count';
   sortOrder?: 'asc' | 'desc';
   timePeriod?: '1h' | '24h' | '7d';
 }

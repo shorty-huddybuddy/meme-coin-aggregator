@@ -8,6 +8,16 @@ const parseRedisUrl = () => {
   const redisUrl = process.env.REDIS_URL || process.env.REDIS_PUBLIC_URL;
   if (redisUrl) {
     try {
+      // Check if URL contains Railway template variables (not yet resolved)
+      if (redisUrl.includes('${{')) {
+        console.warn('⚠️  REDIS_URL contains unresolved template variables - using individual env vars');
+        return {
+          host: process.env.REDISHOST || 'localhost',
+          port: parseInt(process.env.REDISPORT || '6379', 10),
+          password: process.env.REDISPASSWORD || undefined,
+        };
+      }
+      
       const url = new URL(redisUrl);
       return {
         host: url.hostname,
@@ -28,6 +38,16 @@ const parseRedisUrl = () => {
 };
 
 const redisConfig = parseRedisUrl();
+
+// Debug Redis config (mask password)
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Redis config:', {
+    host: redisConfig.host,
+    port: redisConfig.port,
+    hasPassword: !!redisConfig.password,
+    passwordLength: redisConfig.password?.length || 0
+  });
+}
 
 export const config = {
   server: {

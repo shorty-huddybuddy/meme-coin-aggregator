@@ -232,6 +232,10 @@ export class AggregationService {
             bValue = b.price_24hr_change ?? b.price_1hr_change;
           }
           break;
+        case 'price':
+          aValue = a.price_sol;
+          bValue = b.price_sol;
+          break;
         case 'market_cap':
           aValue = a.market_cap_sol;
           bValue = b.market_cap_sol;
