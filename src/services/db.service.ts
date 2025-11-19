@@ -5,11 +5,33 @@ class DBService {
   private connected = false;
 
   constructor() {
-    const user = process.env.POSTGRES_USER || 'memedb';
-    const password = process.env.POSTGRES_PASSWORD || 'memepass';
-    const host = process.env.POSTGRES_HOST || 'db';
-    const port = parseInt(process.env.POSTGRES_PORT || '5432', 10);
-    const database = process.env.POSTGRES_DB || 'memedb';
+    // Support Railway-style DATABASE_URL or individual POSTGRES_* vars
+    const databaseUrl = process.env.DATABASE_URL;
+    let user = process.env.POSTGRES_USER || 'memedb';
+    let password = process.env.POSTGRES_PASSWORD || 'memepass';
+    let host = process.env.POSTGRES_HOST || 'db';
+    let port = parseInt(process.env.POSTGRES_PORT || '5432', 10);
+    let database = process.env.POSTGRES_DB || 'memedb';
+
+    if (databaseUrl) {
+      try {
+        const url = new URL(databaseUrl);
+        user = url.username || user;
+        password = url.password || password;
+        host = url.hostname || host;
+        port = parseInt(url.port || String(port), 10) || port;
+        database = url.pathname ? url.pathname.replace(/^\//, '') : database;
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to parse DATABASE_URL, using individual POSTGRES_* env vars');
+      }
+    }
+
+    // Non-secret debug log to help verify which host/port the app will use.
+    // This prints only host/port/database (no credentials).
+    // It makes it easy to see in Railway logs whether DATABASE_URL was picked up.
+    // eslint-disable-next-line no-console
+    console.log(`DB config: host=${host} port=${port} database=${database}`);
 
     this.pool = new Pool({ user, host, database, password, port });
   }
