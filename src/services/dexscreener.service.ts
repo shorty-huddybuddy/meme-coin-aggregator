@@ -58,49 +58,48 @@ export class DexScreenerService {
 
   async getTrendingTokens(): Promise<TokenData[]> {
     try {
-      return await exponentialBackoff(async () => {
-        // Use configured discovery queries to gather more tokens
-        const queries = config.upstream.dexscreenerQueries || ['SOL', 'BONK', 'WIF', 'POPCAT'];
-        const perQueryCap = config.upstream.dexscreenerPerQueryCap || (config.dev?.expandUpstream ? 50 : 10);
-        const allTokens: TokenData[] = [];
-        const seenAddresses = new Set<string>();
+      // Limit to top 5 queries for faster response, only uppercase (case-insensitive on most)
+      const queries = (config.upstream.dexscreenerQueries || ['SOL', 'BONK', 'WIF', 'POPCAT']).slice(0, 5);
+      const perQueryCap = config.upstream.dexscreenerPerQueryCap || 20;
+      const seenAddresses = new Set<string>();
 
-        for (const query of queries) {
+      // Parallel execution with Promise.allSettled for speed
+      const queryPromises = queries.map(async (query) => {
+        const cacheKey = `upstream:dexscreener:search:${query}`;
+        let tokens = await cacheManager.get<TokenData[]>(cacheKey);
+        
+        if (!tokens) {
           try {
-            // Try both uppercase and lowercase variants since search is case-sensitive
-            const variants = [query.toUpperCase(), query.toLowerCase()];
-            
-            for (const variant of variants) {
-              const cacheKey = `upstream:dexscreener:search:${variant}`;
-              let tokens = await cacheManager.get<TokenData[]>(cacheKey);
-              
-              if (!tokens) {
-                try {
-                  const response = await dexscreenerLimiter.schedule(() => this.client.get(`/search?q=${encodeURIComponent(variant)}`));
-                  tokens = this.transformPairs(response.data.pairs || []);
-                  await cacheManager.set(cacheKey, tokens, config.cache.ttl);
-                } catch (err) {
-                  // Rate limited - use cached data or skip
-                  console.warn(`Rate limited on DexScreener query for ${variant}`);
-                  continue;
-                }
-              }
-              
-              // Deduplicate by token address
-              for (const token of tokens.slice(0, perQueryCap)) {
-                if (!seenAddresses.has(token.token_address)) {
-                  seenAddresses.add(token.token_address);
-                  allTokens.push(token);
-                }
-              }
-            }
-          } catch (error) {
-            console.warn(`Skipped DexScreener query for ${query}`);
+            // Add 5s timeout per query to prevent hanging
+            const response = await Promise.race([
+              dexscreenerLimiter.schedule(() => this.client.get(`/search?q=${encodeURIComponent(query)}`)),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Query timeout')), 5000))
+            ]) as any;
+            tokens = this.transformPairs(response.data.pairs || []);
+            await cacheManager.set(cacheKey, tokens, config.cache.ttl * 2); // Longer cache
+          } catch (err) {
+            return [];
           }
         }
-
-        return allTokens;
+        return tokens.slice(0, perQueryCap);
       });
+
+      const results = await Promise.allSettled(queryPromises);
+      const allTokens: TokenData[] = [];
+
+      // Deduplicate and collect results
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          result.value.forEach((token) => {
+            if (!seenAddresses.has(token.token_address)) {
+              seenAddresses.add(token.token_address);
+              allTokens.push(token);
+            }
+          });
+        }
+      });
+
+      return allTokens;
     } catch (error) {
       console.warn('DexScreener API unavailable, skipping trending tokens');
       return [];

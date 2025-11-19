@@ -5,6 +5,7 @@ import { cacheManager } from './cache.service';
 import { CacheKey } from '../types';
 import { coingeckoService } from './coingecko.service';
 import { geckoTerminalService } from './geckoterminal.service';
+import { config } from '../config';
 
 export class AggregationService {
   private dexScreener: DexScreenerService;
@@ -23,11 +24,20 @@ export class AggregationService {
       }
     }
 
-    const [dexTokens, jupiterTokens, geckoTokens] = await Promise.allSettled([
-      this.dexScreener.getTrendingTokens(),
-      this.jupiter.getPopularTokens(),
-      geckoTerminalService.collectTokens(3), // Reduced from 10 to 3 pages for faster response
-    ]);
+    // Add global timeout of 15 seconds for entire aggregation
+    const aggregationTimeout = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Aggregation timeout')), 15000)
+    );
+
+    try {
+      const [dexTokens, jupiterTokens, geckoTokens] = await Promise.race([
+        Promise.allSettled([
+          this.dexScreener.getTrendingTokens(),
+          this.jupiter.getPopularTokens(),
+          geckoTerminalService.collectTokens(1), // Only 1 page for speed
+        ]),
+        aggregationTimeout
+      ]) as PromiseSettledResult<TokenData[]>[];
 
     const allTokens: TokenData[] = [];
 
@@ -51,21 +61,30 @@ export class AggregationService {
       t.volume_7d = t.volume_7d ?? ((t.volume_24h ?? t.volume_sol) * 7);
     }
 
-    // Enrich tokens with USD conversions using CoinGecko (SOL -> USD)
+      // Enrich tokens with USD conversions using CoinGecko (SOL -> USD) with timeout
     try {
-      const solPrice = await coingeckoService.getSolPriceUsd();
+      const solPrice = await Promise.race([
+        coingeckoService.getSolPriceUsd(),
+        new Promise<number>((resolve) => setTimeout(() => resolve(0), 3000))
+      ]);
+      if (!solPrice) throw new Error('CoinGecko timeout');
       for (const t of mergedTokens) {
         t.price_usd = t.price_sol ? Number((t.price_sol * solPrice).toFixed(6)) : 0;
         t.market_cap_usd = t.market_cap_sol ? Number((t.market_cap_sol * solPrice).toFixed(2)) : 0;
         t.volume_usd = t.volume_sol ? Number((t.volume_sol * solPrice).toFixed(2)) : 0;
       }
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('Failed to enrich USD prices via CoinGecko', e);
+      // If CoinGecko is unavailable, skip USD conversion
+      console.warn('Skipping CoinGecko USD enrichment');
     }
-    await cacheManager.set(CacheKey.ALL_TOKENS, mergedTokens);
 
+    // Cache for 2x TTL to reduce re-aggregation frequency
+    await cacheManager.set(CacheKey.ALL_TOKENS, mergedTokens, config.cache.ttl * 2);
     return mergedTokens;
+    } catch (timeoutError) {
+      console.error('Aggregation timeout - returning empty array');
+      return [];
+    }
   }
 
   async searchTokens(query: string, useCache: boolean = true): Promise<TokenData[]> {

@@ -70,12 +70,12 @@ export const config = {
     jupiterRatePerMinute: parseInt(process.env.JUPITER_RATE_PER_MINUTE || '150', 10),
     dexscreenerConcurrency: parseInt(process.env.DEXSCREENER_CONCURRENCY || '3', 10),
     jupiterConcurrency: parseInt(process.env.JUPITER_CONCURRENCY || '3', 10),
-    // discovery queries and per-query caps (can be tuned via env)
-    dexscreenerQueries: (process.env.DEXSCREENER_QUERIES || 'SOL,BONK,WIF,POPCAT,DOGE,PEPE,MOON,INU,SHIB,USDC,USDT,SRM,ORCA,RAY,SOLO,JUP,PYTH,JITO,MEME,BOME').split(','),
-    jupiterQueries: (process.env.JUPITER_QUERIES || 'SOL,USDC,BONK,WIF,DOGE,PEPE,MOON,INU,SHIB,USDT,SRM,ORCA,RAY').split(','),
-    // increase defaults so aggregator can gather more tokens per discovery query
-    dexscreenerPerQueryCap: parseInt(process.env.DEXSCREENER_PER_QUERY_CAP || '100', 10),
-    jupiterPerQueryCap: parseInt(process.env.JUPITER_PER_QUERY_CAP || '50', 10),
+    // discovery queries and per-query caps (optimized for speed)
+    dexscreenerQueries: (process.env.DEXSCREENER_QUERIES || 'SOL,BONK,WIF,POPCAT,PEPE').split(','),
+    jupiterQueries: (process.env.JUPITER_QUERIES || 'SOL,BONK,WIF').split(','),
+    // Reduced defaults for faster response
+    dexscreenerPerQueryCap: parseInt(process.env.DEXSCREENER_PER_QUERY_CAP || '20', 10),
+    jupiterPerQueryCap: parseInt(process.env.JUPITER_PER_QUERY_CAP || '20', 10),
     geckoTerminalEnabled: (process.env.GECKO_ENABLED || 'true').toLowerCase() === 'true',
     geckoTerminalBase: process.env.GECKO_BASE || 'https://api.geckoterminal.com/api/v2',
   },
