@@ -17,7 +17,7 @@
 - ✅ Excellent WebSocket support
 - ✅ Automatic SSL/HTTPS
 - ✅ GitHub integration
-- ✅ Environment variables management
+- ✅ Environment variables auto-configured
 - ✅ Easy rollbacks
 
 **Steps:**
@@ -35,37 +35,57 @@
 3. **Initialize Project**
    ```powershell
    railway init
-   # Select "Create new project"
-   # Name it: meme-coin-aggregator
+   # Create new project → Yes
+   # Name → meme-coin-aggregator
    ```
 
 4. **Add Redis**
    ```powershell
-   railway add redis
+   railway add
+   # Select: Redis
+   # Railway automatically configures REDIS_URL
    ```
 
-5. **Set Environment Variables** (Auto-configured by Railway)
-   - REDIS_HOST (automatically set)
-   - REDIS_PORT (automatically set)
-   - REDIS_PASSWORD (automatically set)
-   - PORT=3000
-   - NODE_ENV=production
-
-6. **Deploy**
+5. **Deploy**
    ```powershell
    railway up
    ```
 
-7. **Get Public URL**
+6. **Get Public URL**
    ```powershell
    railway domain
+   # Generates: https://your-app.up.railway.app
    ```
 
-8. **Test Deployment**
+7. **Test**
    ```powershell
-   $url = railway domain
-   Invoke-RestMethod "${url}/api/health"
+   $url = (railway domain).Trim()
+   Invoke-RestMethod "$url/api/health"
+   Invoke-RestMethod "$url/api/tokens?limit=5"
+   Start-Process "$url/demo.html"
    ```
+
+**Environment Variables (Auto-Set by Railway):**
+- `REDIS_URL` - Connection string
+- `PORT` - Server port
+- `NODE_ENV` - Set to "production" automatically
+
+**No manual configuration needed!** ✨
+
+**Troubleshooting:**
+```powershell
+# View deployment logs
+railway logs --follow
+
+# Check variables
+railway variables
+
+# Force redeploy
+railway up --detach
+
+# SSH into container
+railway shell
+```
 
 **Railway Dashboard:** https://railway.app/dashboard
 

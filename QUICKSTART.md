@@ -1,58 +1,52 @@
 # Quick Start Guide
 
-## ⚡ Get Started in 5 Minutes
+## ⚡ Get Started in 3 Minutes
 
-### Step 1: Install Redis (if not already installed)
+### Step 1: Install Redis (Choose One)
 
-**Option A: Use Redis Cloud (Recommended for quick start)**
-1. Go to https://redis.com/try-free/
-2. Create a free account
-3. Create a database
-4. Copy the connection details
-5. Update your `.env` file:
+**Option A: Docker (Easiest - Recommended)**
+```powershell
+docker run -d -p 6379:6379 --name redis redis:alpine
+```
+
+**Option B: Redis Cloud (No Installation)**
+1. Go to https://app.redislabs.com/#/sign-up
+2. Create free database (30MB)
+3. Copy host, port, password
+4. Update `.env`:
    ```env
-   REDIS_HOST=your-redis-host.cloud.redislabs.com
+   REDIS_HOST=your-host.cloud.redislabs.com
    REDIS_PORT=12345
    REDIS_PASSWORD=your-password
    ```
 
-**Option B: Local Redis (Windows)**
+**Option C: Windows Local**
 ```powershell
 # Using Chocolatey
 choco install redis-64
 redis-server
-
-# Or download from: https://github.com/microsoftarchive/redis/releases
 ```
 
-**Option C: Docker Redis (Easiest)**
-```powershell
-docker run -d -p 6379:6379 redis:alpine
-```
-
-### Step 2: Configure Environment
-
-Your `.env` file is already created! If using local Redis, no changes needed.
-If using Redis Cloud, update the Redis credentials in `.env`.
-
-### Step 3: Start the Service
+### Step 2: Install & Run
 
 ```powershell
+# Install dependencies
+npm install
+
+# Start the service (creates .env automatically if missing)
 npm run dev
 ```
 
 You should see:
 ```
 ✓ Redis connected
-✓ WebSocket scheduler started
 ✓ Server running on http://localhost:3000
 ✓ WebSocket available on ws://localhost:3000
 ```
 
-### Step 4: Test the API
+### Step 3: Test It Works
 
-**Open a new PowerShell window:**
-
+**PowerShell:**
 ```powershell
 # Health check
 Invoke-RestMethod http://localhost:3000/api/health
@@ -61,110 +55,57 @@ Invoke-RestMethod http://localhost:3000/api/health
 Invoke-RestMethod "http://localhost:3000/api/tokens?limit=10"
 ```
 
-### Step 5: Open the Demo Page
-
-Open your browser and go to:
+**Browser:**
 ```
 http://localhost:3000/demo.html
 ```
 
 You'll see real-time token updates! 🚀
 
-## 🧪 Run Tests
-
-```powershell
-npm test
-```
-
-## 📮 Import Postman Collection
-
-1. Open Postman
-2. Click "Import"
-3. Select `postman_collection.json` from the project root
-4. Set the `baseUrl` variable to `http://localhost:3000`
-5. Try the requests!
-
-## 🎥 Record Your Demo
-
-1. Start the service: `npm run dev`
-2. Open http://localhost:3000/demo.html in 2-3 browser tabs
-3. Open Postman with the imported collection
-4. Start recording (OBS Studio, Loom, or Windows Game Bar)
-5. Show:
-   - Multiple tabs updating in real-time
-   - Run Postman requests
-   - Show response times
-   - Point out WebSocket events
-
-## 🚀 Deploy to Railway (Free)
+## 🚀 Deploy to Railway (5 Minutes)
 
 ```powershell
 # Install Railway CLI
 npm install -g @railway/cli
 
-# Login
+# Login and deploy
 railway login
-
-# Initialize
 railway init
-
-# Add Redis
 railway add redis
-
-# Deploy
 railway up
 
-# Get your public URL
+# Get your live URL
 railway domain
 ```
 
-Your app will be live in minutes! ✨
+Done! Your API is live! ✨
 
 ## ❓ Troubleshooting
 
 **Redis won't connect?**
 ```powershell
-# Test Redis connection
-redis-cli ping
-# Should return: PONG
+# Test Redis
+redis-cli ping  # Should return: PONG
 ```
 
-**Port 3000 already in use?**
+**Port 3000 in use?**
 ```powershell
-# Change port in .env
-PORT=3001
+# Change port
+$env:PORT=3001
+npm run dev
 ```
 
-**Dependencies not installing?**
+**Need to reset?**
 ```powershell
-# Clear cache and reinstall
 Remove-Item -Recurse -Force node_modules
 npm install
 ```
 
-## 📝 What's Included
+## 📝 What's Next?
 
-✅ Multi-source data aggregation (DexScreener + Jupiter)
-✅ Redis caching with 30s TTL
-✅ WebSocket real-time updates
-✅ Rate limiting with exponential backoff
-✅ Token deduplication and merging
-✅ REST API with filtering, sorting, pagination
-✅ 10+ unit and integration tests
-✅ Postman collection
-✅ Interactive WebSocket demo page
-✅ Complete documentation
-✅ Docker support
-✅ CI/CD pipeline ready
+- [x] Local setup ✅
+- [ ] Deploy to Railway
+- [ ] Record demo video
+- [ ] Share GitHub repo
 
-## 🎯 Next: Complete Your Deliverables
-
-- [x] Working service with REST API ✅
-- [x] WebSocket server ✅
-- [x] Unit/integration tests ✅
-- [x] Postman collection ✅
-- [ ] Deploy to free hosting (Railway/Render/Fly)
-- [ ] Record 1-2 min demo video
-- [ ] Share GitHub repo link
-
-You're 90% done! Just deploy and record the demo! 🎉
+See `SETUP.md` for detailed deployment guides!

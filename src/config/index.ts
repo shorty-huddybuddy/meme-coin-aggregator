@@ -31,6 +31,10 @@ export const config = {
     port: parseInt(process.env.PORT || '3000', 10),
     env: process.env.NODE_ENV || 'development',
   },
+  cors: {
+    origins: process.env.CORS_ORIGINS?.split(',').map(s => s.trim()).filter(Boolean) || ['*'],
+    credentials: (process.env.CORS_CREDENTIALS || 'false').toLowerCase() === 'true',
+  },
   redis: {
     host: redisConfig.host,
     port: redisConfig.port,
@@ -59,12 +63,12 @@ export const config = {
   },
   upstream: {
     // requests per minute and concurrency defaults; can be overridden with env vars
-    dexscreenerRatePerMinute: parseInt(process.env.DEXSCREENER_RATE_PER_MINUTE || '300', 10),
-    jupiterRatePerMinute: parseInt(process.env.JUPITER_RATE_PER_MINUTE || '300', 10),
-    dexscreenerConcurrency: parseInt(process.env.DEXSCREENER_CONCURRENCY || '5', 10),
-    jupiterConcurrency: parseInt(process.env.JUPITER_CONCURRENCY || '5', 10),
+    dexscreenerRatePerMinute: parseInt(process.env.DEXSCREENER_RATE_PER_MINUTE || '150', 10),
+    jupiterRatePerMinute: parseInt(process.env.JUPITER_RATE_PER_MINUTE || '150', 10),
+    dexscreenerConcurrency: parseInt(process.env.DEXSCREENER_CONCURRENCY || '3', 10),
+    jupiterConcurrency: parseInt(process.env.JUPITER_CONCURRENCY || '3', 10),
     // discovery queries and per-query caps (can be tuned via env)
-    dexscreenerQueries: (process.env.DEXSCREENER_QUERIES || 'SOL,BONK,WIF,POPCAT,DOGE,PEPE,MOON,INU,SHIB,USDC,USDT,SRM,ORCA,RAY,SOLO').split(','),
+    dexscreenerQueries: (process.env.DEXSCREENER_QUERIES || 'SOL,BONK,WIF,POPCAT,DOGE,PEPE,MOON,INU,SHIB,USDC,USDT,SRM,ORCA,RAY,SOLO,JUP,PYTH,JITO,MEME,BOME').split(','),
     jupiterQueries: (process.env.JUPITER_QUERIES || 'SOL,USDC,BONK,WIF,DOGE,PEPE,MOON,INU,SHIB,USDT,SRM,ORCA,RAY').split(','),
     // increase defaults so aggregator can gather more tokens per discovery query
     dexscreenerPerQueryCap: parseInt(process.env.DEXSCREENER_PER_QUERY_CAP || '100', 10),

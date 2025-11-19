@@ -5,34 +5,48 @@ services:
     volumes:
       - redis-data:/data
     ports:
-      - 6379:6379
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   app:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     image: meme-coin-aggregator:latest
+    container_name: meme-coin-app
     depends_on:
-      - redis
-    env_file: .env
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3000
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      API_KEYS: changeme
+      CACHE_TTL: 30
+      WS_UPDATE_INTERVAL: 5000
+      CORS_ORIGINS: "*"
     ports:
-      - 3000:3000
+      - "3000:3000"
     restart: unless-stopped
-    command: ["npm", "start"]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/health/ready || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })\""]
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
 
 volumes:
   redis-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

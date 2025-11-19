@@ -4,16 +4,22 @@
 
 ### 1. Install Redis
 
-**Windows (using Chocolatey):**
+**Windows (Docker - Recommended):**
+```powershell
+docker run -d -p 6379:6379 --name redis redis:alpine
+# Verify: docker ps
+```
+
+**Windows (Chocolatey):**
 ```powershell
 choco install redis-64
 redis-server
 ```
 
-**Or use Redis Cloud (Free tier):**
-- Sign up at https://redis.com/try-free/
-- Get connection details
-- Update `.env` with cloud credentials
+**Redis Cloud (Free, No Install):**
+- Sign up at https://app.redislabs.com/
+- Create database
+- Update `.env` with credentials
 
 ### 2. Install Dependencies
 ```powershell
@@ -22,8 +28,8 @@ npm install
 
 ### 3. Configure Environment
 ```powershell
-Copy-Item .env.example .env
-# Edit .env with your Redis configuration
+# .env is auto-created from .env.example
+# Edit only if using Redis Cloud or custom settings
 ```
 
 ### 4. Run the Service
@@ -34,7 +40,7 @@ npm run dev
 The service will be available at:
 - REST API: http://localhost:3000
 - WebSocket: ws://localhost:3000
-- Demo page: http://localhost:3000/demo.html (if static files served)
+- Demo page: http://localhost:3000/demo.html
 
 ## Testing the Service
 
@@ -96,30 +102,56 @@ Then in the connected session:
 
 ### Option 1: Railway (Recommended)
 
-1. **Install Railway CLI:**
+**Why Railway?**
+- Free Redis included
+- WebSocket support
+- Auto SSL/HTTPS
+- GitHub integration
+
+**Deploy:**
+
 ```powershell
+# 1. Install CLI
 npm install -g @railway/cli
-```
 
-2. **Login and Initialize:**
-```powershell
+# 2. Login
 railway login
+
+# 3. Initialize
 railway init
-```
+# Select: "Create new project"
+# Name: meme-coin-aggregator
 
-3. **Add Redis:**
-```powershell
+# 4. Add Redis
 railway add redis
-```
+# This automatically sets REDIS_URL
 
-4. **Deploy:**
-```powershell
+# 5. Deploy
 railway up
+
+# 6. Get public URL
+railway domain
+
+# 7. Test deployment
+$url = railway domain
+Invoke-RestMethod "$url/api/health"
 ```
 
-5. **Get URL:**
+**Environment Variables (Auto-configured):**
+- `REDIS_URL` - Automatically set by Railway
+- `PORT` - Automatically set by Railway
+- `NODE_ENV=production` - Add manually if needed
+
+**Troubleshooting:**
 ```powershell
-railway open
+# View logs
+railway logs
+
+# Check environment
+railway variables
+
+# Redeploy
+railway up --detach
 ```
 
 ### Option 2: Render

@@ -1,153 +1,121 @@
-import express, { Application } from 'express';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
 import path from 'path';
-import http from 'http';
-import compression from 'compression';
 import { config } from './config';
-// Validate configuration early to fail fast in production
-import validateConfig from './config/validate';
-
-validateConfig();
-import { cacheManager } from './services/cache.service';
-import { WebSocketService } from './services/websocket.service';
-import apiRoutes from './routes/api.routes';
 import { errorHandler } from './middleware/error.middleware';
-import applySecurityMiddlewares from './middleware/security.middleware';
+import  loggingMiddleware  from './middleware/logging.middleware';
+import  securityMiddleware  from './middleware/security.middleware';
+import apiRoutes from './routes/api.routes';
+import { cacheManager } from './services/cache.service';
+import { startWebSocketServer } from './services/websocket.service';
+import { createServer } from 'http';
 
 class App {
-  public app: Application;
-  public server: http.Server;
-  private wsService: WebSocketService;
+  private app: express.Application;
+  private server: ReturnType<typeof createServer>;
 
   constructor() {
     this.app = express();
-    this.server = http.createServer(this.app);
-    this.wsService = new WebSocketService(this.server);
-
-    this.initializeMiddlewares();
-    this.initializeRoutes();
-    this.initializeErrorHandling();
+    this.server = createServer(this.app);
+    this.setupMiddleware();
+    this.setupRoutes();
+    this.setupErrorHandling();
   }
 
-  private initializeMiddlewares(): void {
-    // Security (CORS, rate limiting, helmet)
-    applySecurityMiddlewares(this.app);
-    // Request logging for observability
-    // Note: keep logging early to capture all requests including auth failures
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { requestLogger } = require('./middleware/logging.middleware');
-    this.app.use(requestLogger);
-    this.app.use(compression());
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+  private setupMiddleware(): void {
+    this.app.use(helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }));
+    this.app.use(cors({
+      origin: config.cors.origins,
+      credentials: config.cors.credentials,
+    }));
+    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    this.app.use(loggingMiddleware);
+    this.app.use(securityMiddleware);
+  }
 
-    // Serve built React client static files first (so assets like `/assets/*` resolve)
-    // This ensures Vite-built assets under `public/client/assets` are served with correct MIME types.
-    this.app.use(express.static(path.join(__dirname, '../public/client')));
-    // Fallback to other public files (demo.html, favicon, etc.)
-    this.app.use(express.static('public'));
-
-    // Favicon route (prevent 404)
-    this.app.get('/favicon.ico', (_req, res) => res.status(204).end());
-
-    // Request logging
-    this.app.use((req, _res, next) => {
-      // eslint-disable-next-line no-console
-      console.log(`${req.method} ${req.path}`);
-      next();
+  private setupRoutes(): void {
+    // Health check - must respond quickly
+    this.app.get('/health', (_req, res) => {
+      res.json({ 
+        status: 'ok', 
+        timestamp: Date.now(),
+        cache: cacheManager.isUsingInMemory() ? 'in-memory' : 'redis'
+      });
     });
-  }
 
-  private initializeRoutes(): void {
     // API routes
     this.app.use('/api', apiRoutes);
 
-    // Serve React client build if exists; fallback to demo.html
-    const clientBuildPath = path.join(__dirname, '../public/client');
-    this.app.get('/', (_req, res) => {
-      if (require('fs').existsSync(path.join(clientBuildPath, 'index.html'))) {
-        return res.sendFile(path.join(clientBuildPath, 'index.html'));
-      }
-      return res.redirect('/demo.html');
+    // Serve static frontend files
+    const publicPath = path.join(__dirname, '../public');
+    this.app.use(express.static(publicPath));
+
+    // SPA fallback - serve index.html for all other routes
+    this.app.get('*', (_req, res) => {
+      const indexPath = path.join(publicPath, 'index.html');
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          res.status(404).type('text/plain').send('Application not found. Please rebuild the client.');
+        }
+      });
     });
   }
 
-  private initializeErrorHandling(): void {
+  private setupErrorHandling(): void {
     this.app.use(errorHandler);
+
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    });
+
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      process.exit(1);
+    });
   }
 
-  public async start(): Promise<void> {
+  async start(): Promise<void> {
     try {
-      // Connect to Redis
+      // Connect to cache
       await cacheManager.connect();
-      // eslint-disable-next-line no-console
-      console.log('✓ Redis connected');
 
-      // Start WebSocket update scheduler
-      await this.wsService.startUpdateScheduler();
-      // eslint-disable-next-line no-console
-      console.log('✓ WebSocket scheduler started');
+      // Start WebSocket server
+      startWebSocketServer(this.server);
 
-      // Start HTTP server
-      this.server.listen(config.server.port, () => {
-        // eslint-disable-next-line no-console
-        console.log(`✓ Server running on http://localhost:${config.server.port}`);
-        // eslint-disable-next-line no-console
-        console.log(`✓ WebSocket available on ws://localhost:${config.server.port}`);
+      // Use PORT from environment (required for deployment platforms)
+      const PORT = Number(process.env.PORT || config.server.port || 8080);
+      const HOST = process.env.HOST || '0.0.0.0';
+
+      this.server.listen(PORT, HOST, () => {
+        console.log(`✓ Server running on http://${HOST}:${PORT}`);
+        console.log(`✓ WebSocket available on ws://${HOST}:${PORT}`);
+        console.log(`✓ Health check: http://${HOST}:${PORT}/health`);
       });
+
+      // Graceful shutdown
+      const shutdown = async () => {
+        console.log('\nShutting down gracefully...');
+        this.server.close(() => {
+          console.log('Server closed');
+        });
+        await cacheManager.disconnect();
+        process.exit(0);
+      };
+
+      process.on('SIGTERM', shutdown);
+      process.on('SIGINT', shutdown);
+
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed to start server:', error);
       process.exit(1);
     }
   }
-
-  // Graceful shutdown helper
-  public async shutdown(): Promise<void> {
-    try {
-      // eslint-disable-next-line no-console
-      console.log('Shutting down gracefully...');
-      this.wsService.stopUpdateScheduler();
-      await cacheManager.disconnect();
-      // Close the HTTP server
-      await new Promise<void>((resolve) => this.server.close(() => resolve()));
-      // eslint-disable-next-line no-console
-      console.log('Shutdown complete');
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Error during shutdown', e);
-    }
-  }
-
-  public async stop(): Promise<void> {
-    this.wsService.stopUpdateScheduler();
-    await cacheManager.disconnect();
-    this.server.close();
-  }
 }
 
-// Start server
-const application = new App();
-application.start();
-
-// Readiness endpoint (Redis-only)
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const expressApp = (application as any).app;
-  expressApp.get('/health/ready', async (_req: any, res: any) => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const cache = require('./services/cache.service').cacheManager;
-      const redisOk = typeof cache.isUsingInMemory === 'function' ? !cache.isUsingInMemory() : true;
-      if (redisOk) {
-        return res.json({ success: true, data: { ready: true } });
-      }
-      return res.status(503).json({ success: false, data: { ready: false } });
-    } catch (e) {
-      return res.status(503).json({ success: false, data: { ready: false } });
-    }
-  });
-} catch (e) {
-  // ignore silently if attach fails during tests
-}
-
-export default application;
+const app = new App();
+app.start();

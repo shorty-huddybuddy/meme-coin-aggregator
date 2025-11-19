@@ -1,4 +1,4 @@
-    # ✅ Final Checklist - Nov 18-20, 2025
+# ✅ Final Checklist - Nov 18-20, 2025
 
 ## 🎯 Current Status (Nov 18, Evening)
 
@@ -118,68 +118,75 @@ git push -u origin main
 #### Task 2: Deploy to Railway (20 minutes)
 
 **Prerequisites:**
-- [ ] GitHub repository is public
-- [ ] All code pushed
+- [ ] GitHub repository created and pushed
+- [ ] All tests passing locally
 
-**Steps:**
+**Deploy Steps:**
 
 ```powershell
-# Install Railway CLI
+# 1. Install Railway CLI
 npm install -g @railway/cli
 
-# Login (opens browser)
+# 2. Login (opens browser)
 railway login
 
-# Initialize project
+# 3. Create project
 railway init
-# Select: "Create new project"
-# Name: meme-coin-aggregator
+# When prompted:
+# - "Create new project" → Yes
+# - Name → "meme-coin-aggregator"
 
-# Link to GitHub (optional but recommended)
-railway link
+# 4. Add Redis (IMPORTANT)
+railway add
+# Select: "Redis"
 
-# Add Redis
-railway add redis
-# This automatically configures REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
-
-# Deploy
+# 5. Deploy your code
 railway up
 
-# Get your public URL
+# 6. Generate public domain
 railway domain
-# Copy this URL - you'll need it!
 
-# Check deployment logs
-railway logs
+# 7. View your app
+railway open
 ```
 
 **Verify Deployment:**
 ```powershell
-# Replace with your actual Railway URL
-$url = "https://your-app.up.railway.app"
+# Get your URL
+$url = (railway domain).Trim()
 
-# Test health
+# Test endpoints
 Invoke-RestMethod "$url/api/health"
-
-# Test tokens endpoint
 Invoke-RestMethod "$url/api/tokens?limit=5"
 
-# Test WebSocket (open in browser)
-# Navigate to: $url/demo.html
+# Open demo in browser
+Start-Process "$url/demo.html"
 ```
 
-**Troubleshooting:**
-- If deployment fails, check logs: `railway logs`
-- Verify environment variables: `railway variables`
-- Check Redis connection in logs
+**Common Issues:**
 
-**Checklist:**
-- [ ] Deployment successful
-- [ ] Health endpoint returns OK
-- [ ] Tokens endpoint returns data
-- [ ] WebSocket demo page loads
-- [ ] Real-time updates working
-- [ ] No errors in Railway logs
+1. **Build fails?**
+   ```powershell
+   railway logs
+   # Check for missing dependencies or TypeScript errors
+   ```
+
+2. **Redis connection fails?**
+   ```powershell
+   railway variables
+   # Verify REDIS_URL is set
+   ```
+
+3. **404 on all routes?**
+   - Check that `npm run build` completes successfully
+   - Verify `public/` folder exists in deployment
+
+**Success Checklist:**
+- [ ] No errors in `railway logs`
+- [ ] `/api/health` returns `{"status":"ok"}`
+- [ ] `/api/tokens` returns token data
+- [ ] `/demo.html` loads and connects via WebSocket
+- [ ] Real-time updates visible in demo page
 
 ---
 

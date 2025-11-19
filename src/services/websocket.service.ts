@@ -241,3 +241,11 @@ export class WebSocketService {
     return this.io;
   }
 }
+
+// Export a factory function to create and start the WebSocket service
+export function startWebSocketServer(httpServer: HttpServer): WebSocketService {
+  const wsService = new WebSocketService(httpServer);
+  wsService.startUpdateScheduler();
+  console.log('✓ WebSocket server started');
+  return wsService;
+}

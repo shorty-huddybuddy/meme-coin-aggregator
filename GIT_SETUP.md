@@ -13,29 +13,26 @@ git init
 git add .
 
 # Initial commit
-git commit -m "Initial commit: Meme Coin Aggregator MVP
+git commit -m "feat: meme coin aggregator MVP
 
-Features:
-- Multi-source data aggregation (DexScreener + Jupiter)
+- Multi-source aggregation (DexScreener + Jupiter)
 - Redis caching with 30s TTL
 - WebSocket real-time updates
 - REST API with filtering, sorting, pagination
 - Rate limiting with exponential backoff
-- Smart token deduplication
 - 27 passing tests
-- Postman collection
-- Interactive demo page
-- Complete documentation
-"
+- Postman collection and demo page
+- Complete documentation"
 
-# Create GitHub repository (manual or CLI)
-# Option 1: Create on GitHub.com manually, then:
-git remote add origin https://github.com/YOUR_USERNAME/meme-coin-aggregator.git
-git branch -M main
+# Create GitHub repository (choose one):
+
+# Option 1: GitHub CLI (if installed)
+gh repo create meme-coin-aggregator --public --source=. --remote=origin
 git push -u origin main
 
-# Option 2: Use GitHub CLI
-gh repo create meme-coin-aggregator --public --source=. --remote=origin
+# Option 2: Manual (create repo on github.com first)
+git remote add origin https://github.com/YOUR_USERNAME/meme-coin-aggregator.git
+git branch -M main
 git push -u origin main
 ```
 
@@ -66,6 +63,19 @@ The repository is organized with these key commits:
 git add .
 git commit -m "Add deployment configuration and live URL"
 git push
+```
+
+## Verify Before Pushing
+
+```powershell
+# Check .gitignore works
+git status  # Should NOT show .env or node_modules/
+
+# Verify build works
+npm run build
+
+# Run tests
+npm test
 ```
 
 ## Verify Repository
