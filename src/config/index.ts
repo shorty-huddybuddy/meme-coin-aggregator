@@ -65,14 +65,14 @@ export const config = {
     db: parseInt(process.env.REDIS_DB || '0', 10),
   },
   cache: {
-    ttl: parseInt(process.env.CACHE_TTL || '120', 10), // 2 minutes for better performance
+    ttl: parseInt(process.env.CACHE_TTL || '30', 10), // 30s for more real-time updates
   },
   rateLimit: {
     dexScreener: parseInt(process.env.DEXSCREENER_RATE_LIMIT || '300', 10),
     window: parseInt(process.env.RATE_LIMIT_WINDOW || '60000', 10), // milliseconds
   },
   websocket: {
-    updateInterval: parseInt(process.env.WS_UPDATE_INTERVAL || '10000', 10), // 10s updates
+    updateInterval: parseInt(process.env.WS_UPDATE_INTERVAL || '3000', 10), // 3s updates like DexScreener
   },
   dev: {
     expandUpstream: (process.env.DEV_EXPAND_UPSTREAM || 'false').toLowerCase() === 'true',
