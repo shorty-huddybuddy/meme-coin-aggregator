@@ -17,6 +17,7 @@ export function TokenList() {
   // Keep raw input as string to support suffixes like 1k, 2.5M, 1b
   const [minVolumeInput, setMinVolumeInput] = useState<string>('');
   const [protocol, setProtocol] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<SortOptions['sortBy']>('volume');
   const [sortOrder, setSortOrder] = useState<SortOptions['sortOrder']>('desc');
   const [pageSize, setPageSize] = useState<number>(30);
@@ -57,11 +58,21 @@ export function TokenList() {
   // Auto-apply filters when they change
   useEffect(() => {
     applyFilters();
-  }, [timePeriod, minVolumeInput, protocol, sortBy, sortOrder, pageSize]);
+  }, [timePeriod, minVolumeInput, protocol, sortBy, sortOrder, pageSize, searchQuery]);
 
   async function fetchTokens(cursor?: string) {
     setLoading(true);
     try {
+      // If search query exists, use search endpoint
+      if (searchQuery.trim()) {
+        const res = await apiClient.searchTokens(searchQuery.trim(), 100);
+        setTokens(res.data || []);
+        setNextCursor(undefined);
+        setPrevCursor(undefined);
+        setTotalCount(res.data?.length);
+        return;
+      }
+
       function parseVolumeInput(input: string): number | undefined {
         if (!input) return undefined;
         const s = input.trim().toLowerCase().replace(/,/g, '');
@@ -148,6 +159,16 @@ export function TokenList() {
       </div>
       
       <div className="controls">
+        <label>
+          Search:
+          <input
+            type="text"
+            placeholder="Token name, ticker, or address"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </label>
+
         <label>
           Time:
           <select value={timePeriod} onChange={(e) => setTimePeriod(e.target.value as any)}>
