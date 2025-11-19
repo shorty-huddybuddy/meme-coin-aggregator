@@ -8,11 +8,11 @@ class DBService {
     // Support Railway-style DATABASE_URL or individual POSTGRES_* vars
     const databaseUrl = process.env.DATABASE_URL;
     // Prefer POSTGRES_* vars, but also accept Railway's PG* vars and fall back to defaults.
-    let user = process.env.PGUSER || process.env.POSTGRES_USER ||  'memedb';
-    let password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD ||  'memepass';
-    let host =  process.env.PGHOST || process.env.POSTGRES_HOST ||  'db';
+    let user = process.env.PGUSER || process.env.POSTGRES_USER ;
+    let password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD ;
+    let host =  process.env.PGHOST || process.env.POSTGRES_HOST ;
     let port = parseInt(process.env.PGPORT || process.env.POSTGRES_PORT ||  '5432', 10);
-    let database = process.env.PGDATABASE || process.env.POSTGRES_DB ||  'memedb';
+    let database = process.env.PGDATABASE || process.env.POSTGRES_DB ;
 
     if (databaseUrl) {
       try {
