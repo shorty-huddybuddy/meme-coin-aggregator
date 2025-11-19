@@ -257,10 +257,10 @@ railway up
 
 ### Run locally with Docker Compose
 
-If you want a reproducible local environment that includes Redis and Postgres, use Docker Compose. This is useful for CI parity and local development when Docker is available.
+If you want a reproducible local environment that includes Redis, use Docker Compose.
 
 ```powershell
-# Start services (builds app image, starts Redis + Postgres)
+# Start services (builds app image, starts Redis)
 docker compose up --build
 
 # In another terminal: run tests (container uses compiled `dist`)
@@ -268,30 +268,7 @@ docker compose exec app npm test
 
 # Stop and remove containers
 docker compose down
-
-Postgres snapshots
-------------------
-
-The app persists periodic token snapshots into Postgres. By default snapshots are taken every 60s and saved to the `token_snapshots` table.
-
-Environment variables (see `.env`):
-
-- `POSTGRES_HOST` (default `db` for docker compose)
-- `POSTGRES_PORT` (default `5432`)
-- `POSTGRES_USER` (default `memedb`)
-- `POSTGRES_PASSWORD` (default `memepass`)
-- `POSTGRES_DB` (default `memedb`)
-- `SNAPSHOT_INTERVAL_MS` (default `60000`)
-
-View snapshots (psql):
-
-```powershell
-# If using docker compose
-docker compose exec db psql -U memedb -d memedb -c "SELECT id, created_at, jsonb_array_length(tokens) AS token_count FROM token_snapshots ORDER BY id DESC LIMIT 5;"
 ```
-
-```
-
 
 ### Option 2: Render
 1. Connect GitHub repository

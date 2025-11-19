@@ -1,5 +1,4 @@
 import { AggregationService } from './aggregation.service';
-import { dbService } from './db.service';
 
 export class SnapshotService {
   private aggregation: AggregationService;

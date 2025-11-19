@@ -2,7 +2,6 @@ import { TokenData, FilterOptions, SortOptions } from '../types';
 import { DexScreenerService } from './dexscreener.service';
 import { JupiterService } from './jupiter.service';
 import { cacheManager } from './cache.service';
-import { dbService } from './db.service';
 import { CacheKey } from '../types';
 import { coingeckoService } from './coingecko.service';
 import { geckoTerminalService } from './geckoterminal.service';
@@ -45,25 +44,13 @@ export class AggregationService {
       }
 
     const mergedTokens = this.mergeTokens(allTokens);
-    // Enrich tokens with accurate 7-day aggregates when available
-    try {
-      const aggregates = await dbService.get7dAggregates(7);
-      for (const t of mergedTokens) {
-        const key = t.token_address?.toLowerCase();
-        if (key && aggregates[key] !== undefined) {
-          t.volume_7d = aggregates[key];
-        } else {
-          // fallback to approximate 7d value
-          t.volume_7d = (t.volume_24h ?? t.volume_sol) * 7;
-        }
-      }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('Failed to load 7d aggregates, using fallbacks', e);
-      for (const t of mergedTokens) {
-        t.volume_7d = (t.volume_24h ?? t.volume_sol) * 7;
-      }
+
+    // Removed Postgres 7d aggregate enrichment.
+    // Compute 7d volume approximation from available 24h volume (fallback-only approach).
+    for (const t of mergedTokens) {
+      t.volume_7d = t.volume_7d ?? ((t.volume_24h ?? t.volume_sol) * 7);
     }
+
     // Enrich tokens with USD conversions using CoinGecko (SOL -> USD)
     try {
       const solPrice = await coingeckoService.getSolPriceUsd();
