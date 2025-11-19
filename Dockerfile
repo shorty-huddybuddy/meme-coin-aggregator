@@ -1,49 +1,54 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# Stage 1: Build Client
+FROM node:20-alpine AS client-builder
+
+WORKDIR /app/client
+
+COPY client/package*.json ./
+RUN npm ci
+
+COPY client/ ./
+RUN npm run build
+
+# Stage 2: Build Server
+FROM node:20-alpine AS server-builder
 
 WORKDIR /app
 
-# Copy everything needed for build
 COPY package*.json ./
 COPY tsconfig.json ./
 COPY src ./src
 
-# Install all dependencies (including dev dependencies)
 RUN npm ci
-
-# Build TypeScript
 RUN npm run build
 
-# Stage 2: Production
+# Stage 3: Production
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Remove postinstall script temporarily to avoid build in production stage
 RUN npm pkg delete scripts.postinstall
-
-# Install production dependencies only (no build needed)
 RUN npm ci --only=production
 
-# Copy built files from builder stage
-COPY --from=builder /app/dist ./dist
+# Copy server build
+COPY --from=server-builder /app/dist ./dist
 
-# Copy public files
-COPY public ./public
+# Copy client build to public
+COPY --from=client-builder /app/client/dist ./public
 
-# Create non-root user
+# Also copy any static files from root public if they exist
+COPY public ./public 2>/dev/null || true
+
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
     chown -R nodejs:nodejs /app
 
 USER nodejs
 
-EXPOSE 3000
+ENV PORT=3000
+EXPOSE $PORT
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD node -e "const port=process.env.PORT||3000;require('http').get(\`http://localhost:\${port}/health\`,(r)=>{process.exit(r.statusCode===200?0:1);})"
 
 CMD ["node", "dist/index.js"]
