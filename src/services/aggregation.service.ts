@@ -24,9 +24,9 @@ export class AggregationService {
       }
     }
 
-    // Add global timeout of 15 seconds for entire aggregation
+    // Add global timeout of 25 seconds for entire aggregation
     const aggregationTimeout = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('Aggregation timeout')), 15000)
+      setTimeout(() => reject(new Error('Aggregation timeout')), 25000)
     );
 
     try {
@@ -42,18 +42,28 @@ export class AggregationService {
     const allTokens: TokenData[] = [];
 
     if (dexTokens.status === 'fulfilled') {
+      console.log(`DexScreener returned ${dexTokens.value.length} tokens`);
       allTokens.push(...dexTokens.value);
+    } else {
+      console.warn('DexScreener failed:', dexTokens.reason);
     }
 
     if (jupiterTokens.status === 'fulfilled') {
+      console.log(`Jupiter returned ${jupiterTokens.value.length} tokens`);
       allTokens.push(...jupiterTokens.value);
+    } else {
+      console.warn('Jupiter failed:', jupiterTokens.reason);
     }
 
       if (geckoTokens.status === 'fulfilled') {
+        console.log(`GeckoTerminal returned ${geckoTokens.value.length} tokens`);
         allTokens.push(...geckoTokens.value);
+      } else {
+        console.warn('GeckoTerminal failed:', geckoTokens.reason);
       }
 
     const mergedTokens = this.mergeTokens(allTokens);
+    console.log(`Merged ${allTokens.length} raw tokens into ${mergedTokens.length} unique tokens`);
 
     // Removed Postgres 7d aggregate enrichment.
     // Compute 7d volume approximation from available 24h volume (fallback-only approach).

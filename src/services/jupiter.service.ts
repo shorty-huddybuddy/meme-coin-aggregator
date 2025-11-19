@@ -52,13 +52,17 @@ export class JupiterService {
               const response = await jupiterLimiter.schedule(() => this.client.get(`/search?query=${encodeURIComponent(query)}`));
               tokens = this.transformTokens(response.data || []);
               await cacheManager.set(cacheKey, tokens, config.cache.ttl);
+              console.log(`✓ Jupiter query "${query}" returned ${tokens.length} tokens`);
+            } else {
+              console.log(`⚡ Jupiter query "${query}" from cache: ${tokens.length} tokens`);
             }
             allTokens.push(...tokens.slice(0, perQueryCap));
           } catch (error) {
-            console.warn(`Skipped Jupiter query for ${query}`);
+            console.warn(`✗ Jupiter query "${query}" failed:`, (error as any)?.message || error);
           }
         }
 
+        console.log(`Jupiter: ${allTokens.length} total tokens`);
         return allTokens;
       });
     } catch (error) {

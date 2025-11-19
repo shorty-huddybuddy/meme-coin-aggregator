@@ -24,8 +24,8 @@ class CoinGeckoService {
       });
       const price = res.data?.solana?.usd ?? null;
       const value = typeof price === 'number' ? price : Number(price) || 0;
-      // cache for at least config.cache.ttl (default 30s) or 60s
-      await cacheManager.set(this.solCacheKey, value, Math.max(config.cache.ttl || 30, 60));
+      // cache for 5 minutes to avoid rate limiting
+      await cacheManager.set(this.solCacheKey, value, 300);
       return value;
     } catch (e) {
       // eslint-disable-next-line no-console

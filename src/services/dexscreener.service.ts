@@ -70,16 +70,20 @@ export class DexScreenerService {
         
         if (!tokens) {
           try {
-            // Add 5s timeout per query to prevent hanging
+            // Add 8s timeout per query to prevent hanging
             const response = await Promise.race([
               dexscreenerLimiter.schedule(() => this.client.get(`/search?q=${encodeURIComponent(query)}`)),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Query timeout')), 5000))
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Query timeout')), 8000))
             ]) as any;
             tokens = this.transformPairs(response.data.pairs || []);
             await cacheManager.set(cacheKey, tokens, config.cache.ttl * 2); // Longer cache
+            console.log(`✓ DexScreener query "${query}" returned ${tokens.length} tokens`);
           } catch (err) {
+            console.warn(`✗ DexScreener query "${query}" failed:`, (err as any)?.message || err);
             return [];
           }
+        } else {
+          console.log(`⚡ DexScreener query "${query}" from cache: ${tokens.length} tokens`);
         }
         return tokens.slice(0, perQueryCap);
       });
@@ -99,6 +103,7 @@ export class DexScreenerService {
         }
       });
 
+      console.log(`DexScreener: ${allTokens.length} unique tokens after deduplication`);
       return allTokens;
     } catch (error) {
       console.warn('DexScreener API unavailable, skipping trending tokens');
