@@ -3,15 +3,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files first
+# Copy everything needed for build
 COPY package*.json ./
-
-# Install ALL dependencies (including devDependencies for build)
-RUN npm ci
-
-# Copy tsconfig and source code
 COPY tsconfig.json ./
 COPY src ./src
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
 
 # Build TypeScript
 RUN npm run build
@@ -30,22 +28,19 @@ RUN npm ci --only=production
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Copy public files (demo.html, etc.)
+# Copy public files
 COPY public ./public
 
-# Create non-root user for security
+# Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
     chown -R nodejs:nodejs /app
 
 USER nodejs
 
-# Expose port (Railway sets PORT env var)
 EXPOSE 3000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"
 
-# Start application
 CMD ["node", "dist/index.js"]
