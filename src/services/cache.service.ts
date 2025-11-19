@@ -17,7 +17,11 @@ class CacheManager {
 
     try {
       const hasPassword = !!config.redis.password;
-      console.log(`🔌 Attempting Redis connection to ${config.redis.host}:${config.redis.port} (auth: ${hasPassword ? 'yes' : 'no'})`);
+      const passwordInfo = config.redis.password 
+        ? `${config.redis.password.substring(0, 4)}...${config.redis.password.substring(config.redis.password.length - 4)}` 
+        : 'NONE';
+      console.log(`🔌 Attempting Redis connection to ${config.redis.host}:${config.redis.port}`);
+      console.log(`   Auth: ${hasPassword ? 'yes' : 'NO'}, Password: ${passwordInfo}`);
       
       this.client = new Redis({
         host: config.redis.host,
