@@ -9,6 +9,8 @@ class CacheManager {
 
   constructor() {
     try {
+      console.log(`🔌 Attempting Redis connection to ${config.redis.host}:${config.redis.port}`);
+      
       this.client = new Redis({
         host: config.redis.host,
         port: config.redis.port,
@@ -21,6 +23,7 @@ class CacheManager {
             return null; // Stop retrying
           }
           const delay = Math.min(times * 50, 2000);
+          console.log(`🔄 Redis retry attempt ${times}, waiting ${delay}ms...`);
           return delay;
         },
         lazyConnect: true,
@@ -31,10 +34,11 @@ class CacheManager {
       this.client.on('connect', () => {
         this.isConnected = true;
         this.useInMemory = false;
-        console.log('✓ Redis connected');
+        console.log('✓ Redis connected successfully');
       });
 
       this.client.on('error', (error: Error) => {
+        console.error('❌ Redis error:', error.message);
         if (!this.useInMemory && error.message.includes('ECONNREFUSED')) {
           console.log('⚠️  Redis connection failed. Using in-memory cache instead.');
           this.useInMemory = true;

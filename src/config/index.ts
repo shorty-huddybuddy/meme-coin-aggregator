@@ -4,7 +4,8 @@ dotenv.config();
 
 // Parse Redis URL if provided (Railway format)
 const parseRedisUrl = () => {
-  const redisUrl = process.env.REDIS_URL;
+  // Try REDIS_URL first (Railway internal URL)
+  const redisUrl = process.env.REDIS_URL || process.env.REDIS_PUBLIC_URL;
   if (redisUrl) {
     try {
       const url = new URL(redisUrl);
@@ -17,10 +18,12 @@ const parseRedisUrl = () => {
       console.warn('Failed to parse REDIS_URL, using individual env vars');
     }
   }
+  
+  // Support Railway's individual env vars
   return {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD || undefined,
+    host: process.env.REDISHOST || process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDISPORT || process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDISPASSWORD || process.env.REDIS_PASSWORD || undefined,
   };
 };
 
