@@ -63,6 +63,7 @@ export class DexScreenerService {
         const queries = config.upstream.dexscreenerQueries || ['SOL', 'BONK', 'WIF', 'POPCAT'];
         const perQueryCap = config.upstream.dexscreenerPerQueryCap || (config.dev?.expandUpstream ? 50 : 10);
         const allTokens: TokenData[] = [];
+        const seenAddresses = new Set<string>();
 
         for (const query of queries) {
           try {
@@ -72,12 +73,26 @@ export class DexScreenerService {
             for (const variant of variants) {
               const cacheKey = `upstream:dexscreener:search:${variant}`;
               let tokens = await cacheManager.get<TokenData[]>(cacheKey);
+              
               if (!tokens) {
-                const response = await dexscreenerLimiter.schedule(() => this.client.get(`/search?q=${encodeURIComponent(variant)}`));
-                tokens = this.transformPairs(response.data.pairs || []);
-                await cacheManager.set(cacheKey, tokens, config.cache.ttl);
+                try {
+                  const response = await dexscreenerLimiter.schedule(() => this.client.get(`/search?q=${encodeURIComponent(variant)}`));
+                  tokens = this.transformPairs(response.data.pairs || []);
+                  await cacheManager.set(cacheKey, tokens, config.cache.ttl);
+                } catch (err) {
+                  // Rate limited - use cached data or skip
+                  console.warn(`Rate limited on DexScreener query for ${variant}`);
+                  continue;
+                }
               }
-              allTokens.push(...tokens.slice(0, perQueryCap));
+              
+              // Deduplicate by token address
+              for (const token of tokens.slice(0, perQueryCap)) {
+                if (!seenAddresses.has(token.token_address)) {
+                  seenAddresses.add(token.token_address);
+                  allTokens.push(token);
+                }
+              }
             }
           } catch (error) {
             console.warn(`Skipped DexScreener query for ${query}`);

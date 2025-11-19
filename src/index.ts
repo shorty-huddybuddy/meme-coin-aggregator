@@ -24,6 +24,11 @@ class App {
   }
 
   private setupMiddleware(): void {
+    // Trust proxy for Railway/production (handles X-Forwarded-For)
+    if (config.server.env === 'production' || process.env.RAILWAY_ENVIRONMENT) {
+      this.app.set('trust proxy', 1);
+    }
+    
     this.app.use(helmet({
       contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false,
