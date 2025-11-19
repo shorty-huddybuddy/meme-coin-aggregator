@@ -5,7 +5,7 @@ import type { ApiResponse, TokenData, FilterOptions, SortOptions } from '../type
 class ApiClient {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:3000/api') {
+  constructor(baseURL: string = import.meta.env.VITE_API_URL || '/api') {
     this.client = axios.create({
       baseURL,
       timeout: 10000,

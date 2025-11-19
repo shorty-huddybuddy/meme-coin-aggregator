@@ -5,7 +5,7 @@ class WebSocketService {
   private socket: Socket | null = null;
 
   connect(
-    url: string = 'http://localhost:3000',
+    url: string = import.meta.env.VITE_API_URL || window.location.origin,
     onUpdate: (update: WebSocketUpdate) => void,
     filters?: FilterOptions
   ): void {
