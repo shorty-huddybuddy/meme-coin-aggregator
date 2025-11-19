@@ -1,12 +1,12 @@
 import axios, { AxiosInstance } from 'axios';
 import { config } from '../config';
 import { TokenData, DexScreenerPair } from '../types';
-import { exponentialBackoff, RateLimiter } from '../utils/helpers';
-import { RateLimitError } from '../utils/errors';
+import { exponentialBackoff } from '../utils/helpers';
+import { dexscreenerLimiter } from './upstreamClients';
+import { cacheManager } from './cache.service';
 
 export class DexScreenerService {
   private client: AxiosInstance;
-  private rateLimiter: RateLimiter;
 
   constructor() {
     this.client = axios.create({
@@ -16,20 +16,22 @@ export class DexScreenerService {
         'Accept': 'application/json',
       },
     });
-    this.rateLimiter = new RateLimiter();
   }
 
   async searchTokens(query: string): Promise<TokenData[]> {
-    const canProceed = await this.rateLimiter.checkLimit();
-    if (!canProceed) {
-      throw new RateLimitError('DexScreener rate limit exceeded');
-    }
+    const cacheKey = `upstream:dexscreener:search:${query}`;
+    const cached = await cacheManager.get<TokenData[]>(cacheKey);
+    if (cached) return cached;
 
     try {
-      return await exponentialBackoff(async () => {
-        const response = await this.client.get(`/search?q=${encodeURIComponent(query)}`);
+      const result = await exponentialBackoff(async () => {
+        const response = await dexscreenerLimiter.schedule(() => this.client.get(`/search?q=${encodeURIComponent(query)}`));
         return this.transformPairs(response.data.pairs || []);
       });
+
+      // cache upstream search result
+      await cacheManager.set(cacheKey, result, config.cache.ttl);
+      return result;
     } catch (error) {
       console.warn(`DexScreener search failed for "${query}", returning empty results`);
       return [];
@@ -37,16 +39,17 @@ export class DexScreenerService {
   }
 
   async getTokenByAddress(address: string): Promise<TokenData[]> {
-    const canProceed = await this.rateLimiter.checkLimit();
-    if (!canProceed) {
-      throw new RateLimitError('DexScreener rate limit exceeded');
-    }
+    const cacheKey = `upstream:dexscreener:token:${address}`;
+    const cached = await cacheManager.get<TokenData[]>(cacheKey);
+    if (cached) return cached;
 
     try {
-      return await exponentialBackoff(async () => {
-        const response = await this.client.get(`/tokens/${address}`);
+      const result = await exponentialBackoff(async () => {
+        const response = await dexscreenerLimiter.schedule(() => this.client.get(`/tokens/${address}`));
         return this.transformPairs(response.data.pairs || []);
       });
+      await cacheManager.set(cacheKey, result, config.cache.ttl);
+      return result;
     } catch (error) {
       console.warn(`DexScreener lookup failed for address ${address}`);
       return [];
@@ -54,24 +57,24 @@ export class DexScreenerService {
   }
 
   async getTrendingTokens(): Promise<TokenData[]> {
-    const canProceed = await this.rateLimiter.checkLimit();
-    if (!canProceed) {
-      throw new RateLimitError('DexScreener rate limit exceeded');
-    }
-
     try {
       return await exponentialBackoff(async () => {
-        // Use popular Solana tokens as fallback search
-        const queries = ['SOL', 'BONK', 'WIF', 'POPCAT'];
+        // Use configured discovery queries to gather more tokens
+        const queries = config.upstream.dexscreenerQueries || ['SOL', 'BONK', 'WIF', 'POPCAT'];
+        const perQueryCap = config.upstream.dexscreenerPerQueryCap || (config.dev?.expandUpstream ? 50 : 10);
         const allTokens: TokenData[] = [];
 
         for (const query of queries) {
           try {
-            const response = await this.client.get(`/search?q=${query}`);
-            const tokens = this.transformPairs(response.data.pairs || []);
-            allTokens.push(...tokens.slice(0, 10)); // Take top 10 per query
+            const cacheKey = `upstream:dexscreener:search:${query}`;
+            let tokens = await cacheManager.get<TokenData[]>(cacheKey);
+            if (!tokens) {
+              const response = await dexscreenerLimiter.schedule(() => this.client.get(`/search?q=${encodeURIComponent(query)}`));
+              tokens = this.transformPairs(response.data.pairs || []);
+              await cacheManager.set(cacheKey, tokens, config.cache.ttl);
+            }
+            allTokens.push(...tokens.slice(0, perQueryCap));
           } catch (error) {
-            // Skip individual query failures silently
             console.warn(`Skipped DexScreener query for ${query}`);
           }
         }
@@ -94,6 +97,8 @@ export class DexScreenerService {
         price_sol: parseFloat(pair.priceNative || '0') || 0,
         market_cap_sol: pair.marketCap ? pair.marketCap / (parseFloat(pair.priceUsd || '1') || 1) : 0,
         volume_sol: (pair.volume?.h24 || 0) / (parseFloat(pair.priceUsd || '1') || 1),
+        volume_1h: (pair.volume?.h1 || 0) / (parseFloat(pair.priceUsd || '1') || 1),
+        volume_24h: (pair.volume?.h24 || 0) / (parseFloat(pair.priceUsd || '1') || 1),
         liquidity_sol: pair.liquidity?.quote || 0,
         transaction_count: (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0),
         price_1hr_change: pair.priceChange?.h1 || 0,
@@ -105,6 +110,7 @@ export class DexScreenerService {
   }
 
   getRemainingRequests(): number {
-    return this.rateLimiter.getRemainingRequests();
+    // Not available for upstream token-bucket; return -1 to indicate unknown.
+    return -1;
   }
 }

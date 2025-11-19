@@ -77,8 +77,17 @@ export class WebSocketService {
       const filters: Record<string, any> = (socket.data && socket.data.filters) || {};
 
       const matchesFilter = (token: TokenData) => {
-        if (filters.minVolume != null && token.volume_sol < filters.minVolume) return false;
-        if (filters.maxVolume != null && token.volume_sol > filters.maxVolume) return false;
+        let volume = token.volume_sol;
+        if (filters.timePeriod === '1h') {
+          volume = token.volume_1h ?? token.volume_sol;
+        } else if (filters.timePeriod === '24h') {
+          volume = token.volume_24h ?? token.volume_sol;
+        } else if (filters.timePeriod === '7d') {
+          volume = (token.volume_24h ?? token.volume_sol) * 7;
+        }
+
+        if (filters.minVolume != null && volume < filters.minVolume) return false;
+        if (filters.maxVolume != null && volume > filters.maxVolume) return false;
         if (filters.minMarketCap != null && token.market_cap_sol < filters.minMarketCap) return false;
         if (filters.maxMarketCap != null && token.market_cap_sol > filters.maxMarketCap) return false;
         if (filters.protocol && typeof filters.protocol === 'string' && token.protocol !== filters.protocol) return false;
@@ -86,6 +95,10 @@ export class WebSocketService {
       };
 
       const payload = tokens.filter(matchesFilter);
+      // Debug log: how many tokens will be sent
+      // eslint-disable-next-line no-console
+      console.log(`Sending initial data to ${socket.id}: ${payload.length} tokens`);
+
       const message: WebSocketMessage = {
         event: 'new_token',
         data: payload,
@@ -151,10 +164,14 @@ export class WebSocketService {
         }
       }
 
-      // Update cache
+      // Update previous tokens cache
       tokens.forEach((token) => {
         this.previousTokens.set(token.token_address, token);
       });
+
+      // Debug logs
+      // eslint-disable-next-line no-console
+      console.log(`Broadcast cycle: fetched ${tokens.length} tokens, updates=${updates.length}, spikes=${volumeSpikes.length}`);
 
       // Broadcast updates with per-socket filter support
       if (updates.length > 0 || volumeSpikes.length > 0) {
@@ -166,9 +183,17 @@ export class WebSocketService {
           const filters: Record<string, any> = (s.data && s.data.filters) || {};
 
           const matchesFilter = (token: TokenData) => {
-            // minVolume
-            if (filters.minVolume != null && token.volume_sol < filters.minVolume) return false;
-            if (filters.maxVolume != null && token.volume_sol > filters.maxVolume) return false;
+            let volume = token.volume_sol;
+            if (filters.timePeriod === '1h') {
+              volume = token.volume_1h ?? token.volume_sol;
+            } else if (filters.timePeriod === '24h') {
+              volume = token.volume_24h ?? token.volume_sol;
+            } else if (filters.timePeriod === '7d') {
+              volume = (token.volume_24h ?? token.volume_sol) * 7;
+            }
+
+            if (filters.minVolume != null && volume < filters.minVolume) return false;
+            if (filters.maxVolume != null && volume > filters.maxVolume) return false;
             if (filters.minMarketCap != null && token.market_cap_sol < filters.minMarketCap) return false;
             if (filters.maxMarketCap != null && token.market_cap_sol > filters.maxMarketCap) return false;
             if (filters.protocol && typeof filters.protocol === 'string' && token.protocol !== filters.protocol) return false;

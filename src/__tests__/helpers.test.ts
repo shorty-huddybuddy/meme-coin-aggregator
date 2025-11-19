@@ -70,19 +70,19 @@ describe('Helpers', () => {
     it('should encode and decode cursor correctly', () => {
       const index = 42;
       const cursor = generateCursor(index);
-      const decoded = decodeCursor(cursor);
-      
-      expect(decoded).toBe(index);
+      const decoded: any = decodeCursor(cursor);
+
+      expect(decoded.index).toBe(index);
     });
 
     it('should handle invalid cursor gracefully', () => {
-      const decoded = decodeCursor('invalid-cursor');
-      expect(decoded).toBe(0);
+      const decoded: any = decodeCursor('invalid-cursor');
+      expect(decoded.index).toBe(0);
     });
 
     it('should handle edge cases', () => {
-      expect(decodeCursor(generateCursor(0))).toBe(0);
-      expect(decodeCursor(generateCursor(999999))).toBe(999999);
+      expect((decodeCursor(generateCursor(0)) as any).index).toBe(0);
+      expect((decodeCursor(generateCursor(999999)) as any).index).toBe(999999);
     });
   });
 });

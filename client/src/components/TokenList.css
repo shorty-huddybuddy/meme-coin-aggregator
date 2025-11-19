@@ -1,0 +1,173 @@
+.token-list {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+h1 {
+  color: #667eea;
+  margin-bottom: 0.5rem;
+  font-size: 2.5rem;
+  text-align: center;
+}
+
+.subtitle {
+  text-align: center;
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem;
+  font-size: 1.2rem;
+  color: #667eea;
+}
+
+.table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.controls {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.controls label {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.controls select,
+.controls input {
+  margin-left: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.apply-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.apply-btn:hover {
+  filter: brightness(0.95);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+tbody tr {
+  border-bottom: 1px solid #eee;
+  transition: all 0.3s ease;
+}
+
+tbody tr:hover {
+  background: #f8f9ff;
+  transform: scale(1.01);
+}
+
+tbody tr.updated {
+  animation: flash 0.5s ease-in-out;
+  background: #d4ffd4;
+}
+
+@keyframes flash {
+  0% {
+    background: #d4ffd4;
+  }
+  100% {
+    background: white;
+  }
+}
+
+td {
+  padding: 1rem;
+  font-size: 0.95rem;
+}
+
+.token-info {
+  min-width: 150px;
+}
+
+.token-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.token-ticker {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.price {
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+}
+
+.positive {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.negative {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.protocol {
+  text-transform: capitalize;
+  color: #667eea;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .token-list {
+    padding: 1rem;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  table {
+    font-size: 0.85rem;
+  }
+
+  th,
+  td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .token-info {
+    min-width: 100px;
+  }
+}

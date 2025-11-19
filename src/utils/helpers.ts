@@ -75,15 +75,29 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function generateCursor(index: number): string {
-  return Buffer.from(index.toString()).toString('base64');
+export type CursorPayload = { index: number; fingerprint?: string } | number;
+
+export function generateCursor(payload: CursorPayload): string {
+  // Normalize to an object so we can extend in future (fingerprint, timestamp)
+  const obj = typeof payload === 'number' ? { index: payload } : payload;
+  return Buffer.from(JSON.stringify(obj)).toString('base64');
 }
 
-export function decodeCursor(cursor: string): number {
+export function decodeCursor(cursor: string): any {
   try {
-    const decoded = parseInt(Buffer.from(cursor, 'base64').toString('utf-8'), 10);
-    return isNaN(decoded) ? 0 : decoded;
+    const str = Buffer.from(cursor, 'base64').toString('utf-8');
+    // Try JSON decode first (new format)
+    try {
+      const parsed = JSON.parse(str);
+      return parsed;
+    } catch {
+      // not JSON, fall back
+    }
+
+    // Fallback to legacy integer-only cursor
+    const decoded = parseInt(str, 10);
+    return { index: isNaN(decoded) ? 0 : decoded };
   } catch {
-    return 0;
+    return { index: 0 };
   }
 }

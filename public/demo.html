@@ -253,6 +253,16 @@
 
         <div class="controls">
             <button class="btn-primary" onclick="connect()">Connect</button>
+            <label for="timePeriod">Time:</label>
+            <select id="timePeriod">
+                <option value="1h">1h</option>
+                <option value="24h" selected>24h</option>
+                <option value="7d">7d</option>
+            </select>
+            <label for="minVolume">Min Volume (SOL):</label>
+            <input id="minVolume" type="number" value="100" style="width:100px" />
+            <label for="protocol">Protocol:</label>
+            <input id="protocol" type="text" placeholder="e.g. Unknown" style="width:120px" />
             <button class="btn-secondary" onclick="subscribe()">Subscribe</button>
             <button class="btn-danger" onclick="disconnect()">Disconnect</button>
             <button class="btn-secondary" onclick="clearLog()">Clear Log</button>
@@ -375,8 +385,18 @@
                 addLog('Not connected. Please connect first.', 'error');
                 return;
             }
-            socket.emit('subscribe', { filters: { minVolume: 100 } });
-            addLog('Sent subscription request', 'event');
+            const minVolume = Number(document.getElementById('minVolume').value) || 0;
+            const timePeriod = document.getElementById('timePeriod').value || '24h';
+            const protocol = document.getElementById('protocol').value || undefined;
+
+            const filters = {
+                minVolume,
+                timePeriod,
+            };
+            if (protocol) filters.protocol = protocol;
+
+            socket.emit('subscribe', { filters });
+            addLog(`Sent subscription request: ${JSON.stringify(filters)}`, 'event');
         }
 
         function updateStatus(connected) {

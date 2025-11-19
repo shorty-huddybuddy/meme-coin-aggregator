@@ -2,6 +2,8 @@ import axios, { AxiosInstance } from 'axios';
 import { config } from '../config';
 import { TokenData, JupiterToken } from '../types';
 import { exponentialBackoff } from '../utils/helpers';
+import { jupiterLimiter } from './upstreamClients';
+import { cacheManager } from './cache.service';
 
 export class JupiterService {
   private client: AxiosInstance;
@@ -17,11 +19,17 @@ export class JupiterService {
   }
 
   async searchTokens(query: string): Promise<TokenData[]> {
+    const cacheKey = `upstream:jupiter:search:${query}`;
+    const cached = await cacheManager.get<TokenData[]>(cacheKey);
+    if (cached) return cached;
+
     try {
-      return await exponentialBackoff(async () => {
-        const response = await this.client.get(`/search?query=${encodeURIComponent(query)}`);
+      const result = await exponentialBackoff(async () => {
+        const response = await jupiterLimiter.schedule(() => this.client.get(`/search?query=${encodeURIComponent(query)}`));
         return this.transformTokens(response.data || []);
       });
+      await cacheManager.set(cacheKey, result, config.cache.ttl);
+      return result;
     } catch (error) {
       console.warn(`Jupiter search failed for "${query}", returning empty results`);
       return [];
@@ -31,17 +39,22 @@ export class JupiterService {
   async getPopularTokens(): Promise<TokenData[]> {
     try {
       return await exponentialBackoff(async () => {
-        // Jupiter doesn't have a trending endpoint, so we search for popular tokens
-        const queries = ['SOL', 'USDC', 'BONK', 'WIF'];
+        // Jupiter: use configured discovery queries
+        const queries = config.upstream.jupiterQueries || ['SOL', 'USDC', 'BONK', 'WIF'];
+        const perQueryCap = config.upstream.jupiterPerQueryCap || (config.dev?.expandUpstream ? 20 : 5);
         const allTokens: TokenData[] = [];
 
         for (const query of queries) {
           try {
-            const response = await this.client.get(`/search?query=${query}`);
-            const tokens = this.transformTokens(response.data || []);
-            allTokens.push(...tokens.slice(0, 5));
+            const cacheKey = `upstream:jupiter:search:${query}`;
+            let tokens = await cacheManager.get<TokenData[]>(cacheKey);
+            if (!tokens) {
+              const response = await jupiterLimiter.schedule(() => this.client.get(`/search?query=${encodeURIComponent(query)}`));
+              tokens = this.transformTokens(response.data || []);
+              await cacheManager.set(cacheKey, tokens, config.cache.ttl);
+            }
+            allTokens.push(...tokens.slice(0, perQueryCap));
           } catch (error) {
-            // Skip individual query failures
             console.warn(`Skipped Jupiter query for ${query}`);
           }
         }
@@ -49,7 +62,6 @@ export class JupiterService {
         return allTokens;
       });
     } catch (error) {
-      // If all retries fail, return empty array instead of throwing
       console.warn('Jupiter API unavailable, skipping');
       return [];
     }
@@ -63,6 +75,8 @@ export class JupiterService {
       price_sol: 0, // Jupiter doesn't provide price directly
       market_cap_sol: 0,
       volume_sol: token.daily_volume || 0,
+      volume_1h: 0,
+      volume_24h: token.daily_volume || 0,
       liquidity_sol: 0,
       transaction_count: 0,
       price_1hr_change: 0,

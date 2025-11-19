@@ -3,8 +3,14 @@ export interface TokenData {
   token_name: string;
   token_ticker: string;
   price_sol: number;
+  price_usd?: number;
   market_cap_sol: number;
+  market_cap_usd?: number;
   volume_sol: number;
+  volume_usd?: number;
+  volume_1h?: number;
+  volume_24h?: number;
+  volume_7d?: number;
   liquidity_sol: number;
   transaction_count: number;
   price_1hr_change: number;
@@ -75,6 +81,7 @@ export interface FilterOptions {
 export interface SortOptions {
   sortBy?: 'volume' | 'price_change' | 'market_cap' | 'liquidity' | 'transaction_count';
   sortOrder?: 'asc' | 'desc';
+  timePeriod?: '1h' | '24h' | '7d';
 }
 
 export interface PaginationOptions {
@@ -88,6 +95,8 @@ export interface ApiResponse<T> {
   pagination?: {
     limit: number;
     nextCursor?: string;
+    prevCursor?: string;
+    totalCount?: number;
   };
   error?: string;
 }

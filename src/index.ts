@@ -1,13 +1,18 @@
 import express, { Application } from 'express';
 import path from 'path';
 import http from 'http';
-import cors from 'cors';
 import compression from 'compression';
 import { config } from './config';
+// Validate configuration early to fail fast in production
+import validateConfig from './config/validate';
+
+validateConfig();
 import { cacheManager } from './services/cache.service';
 import { WebSocketService } from './services/websocket.service';
+import { snapshotService } from './services/snapshot.service';
 import apiRoutes from './routes/api.routes';
 import { errorHandler } from './middleware/error.middleware';
+import applySecurityMiddlewares from './middleware/security.middleware';
 
 class App {
   public app: Application;
@@ -25,13 +30,25 @@ class App {
   }
 
   private initializeMiddlewares(): void {
-    this.app.use(cors());
+    // Security (CORS, rate limiting, helmet)
+    applySecurityMiddlewares(this.app);
+    // Request logging for observability
+    // Note: keep logging early to capture all requests including auth failures
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { requestLogger } = require('./middleware/logging.middleware');
+    this.app.use(requestLogger);
     this.app.use(compression());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
 
-    // Serve static files
+    // Serve built React client static files first (so assets like `/assets/*` resolve)
+    // This ensures Vite-built assets under `public/client/assets` are served with correct MIME types.
+    this.app.use(express.static(path.join(__dirname, '../public/client')));
+    // Fallback to other public files (demo.html, favicon, etc.)
     this.app.use(express.static('public'));
+
+    // Favicon route (prevent 404)
+    this.app.get('/favicon.ico', (_req, res) => res.status(204).end());
 
     // Request logging
     this.app.use((req, _res, next) => {
@@ -45,8 +62,12 @@ class App {
     // API routes
     this.app.use('/api', apiRoutes);
 
-    // Root endpoint: redirect to demo UI (served from /public) if present
+    // Serve React client build if exists; fallback to demo.html
+    const clientBuildPath = path.join(__dirname, '../public/client');
     this.app.get('/', (_req, res) => {
+      if (require('fs').existsSync(path.join(clientBuildPath, 'index.html'))) {
+        return res.sendFile(path.join(clientBuildPath, 'index.html'));
+      }
       return res.redirect('/demo.html');
     });
 
@@ -72,6 +93,12 @@ class App {
       // eslint-disable-next-line no-console
       console.log('✓ Redis connected');
 
+      // Start DB-backed snapshot service (interval configurable via SNAPSHOT_INTERVAL_MS)
+      const snapshotInterval = parseInt(process.env.SNAPSHOT_INTERVAL_MS || '', 10) || 60 * 1000;
+      await snapshotService.start(snapshotInterval);
+      // eslint-disable-next-line no-console
+      console.log('✓ Snapshot service started');
+
       // Start WebSocket update scheduler
       await this.wsService.startUpdateScheduler();
       // eslint-disable-next-line no-console
@@ -91,6 +118,23 @@ class App {
     }
   }
 
+  // Graceful shutdown helper
+  public async shutdown(): Promise<void> {
+    try {
+      // eslint-disable-next-line no-console
+      console.log('Shutting down gracefully...');
+      this.wsService.stopUpdateScheduler();
+      await cacheManager.disconnect();
+      // Close the HTTP server
+      await new Promise<void>((resolve) => this.server.close(() => resolve()));
+      // eslint-disable-next-line no-console
+      console.log('Shutdown complete');
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Error during shutdown', e);
+    }
+  }
+
   public async stop(): Promise<void> {
     this.wsService.stopUpdateScheduler();
     await cacheManager.disconnect();
@@ -101,5 +145,45 @@ class App {
 // Start server
 const application = new App();
 application.start();
+
+// Readiness endpoint (lightweight) and graceful shutdown signal handlers
+process.on('SIGINT', async () => {
+  // eslint-disable-next-line no-console
+  console.log('SIGINT received');
+  await application.shutdown();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  // eslint-disable-next-line no-console
+  console.log('SIGTERM received');
+  await application.shutdown();
+  process.exit(0);
+});
+
+// Expose a minimal readiness probe endpoint for k8s/containers
+// Note: we attach this to the express app instance used by the running server
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const expressApp = (application as any).app;
+  expressApp.get('/health/ready', async (_req: any, res: any) => {
+    try {
+      // Check Redis and DB readiness if available
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const cache = require('./services/cache.service').cacheManager;
+      const db = require('./services/db.service').dbService;
+      const redisOk = typeof cache.isUsingInMemory === 'function' ? !cache.isUsingInMemory() : true;
+      const dbReady = typeof db?.isReady === 'function' ? await db.isReady() : true;
+      if (redisOk && dbReady) {
+        return res.json({ success: true, data: { ready: true } });
+      }
+      return res.status(503).json({ success: false, data: { ready: false } });
+    } catch (e) {
+      return res.status(503).json({ success: false, data: { ready: false } });
+    }
+  });
+} catch (e) {
+  // ignore silently if attach fails during tests
+}
 
 export default application;

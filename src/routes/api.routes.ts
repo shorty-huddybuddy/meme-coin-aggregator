@@ -5,6 +5,15 @@ import { asyncHandler } from '../middleware/error.middleware';
 import { FilterOptions, SortOptions, ApiResponse, TokenData } from '../types';
 import { decodeCursor, generateCursor } from '../utils/helpers';
 import { ValidationError } from '../utils/errors';
+import apiKeyMiddleware from '../middleware/auth.middleware';
+import {
+  tokensQueryValidator,
+  searchQueryValidator,
+  handleValidationErrors,
+} from '../middleware/validators';
+import { metrics } from '../services/metrics.service';
+import logger from '../services/logger.service';
+import { config } from '../config';
 
 const router = Router();
 const aggregationService = new AggregationService();
@@ -13,9 +22,7 @@ const aggregationService = new AggregationService();
  * GET /api/tokens
  * Get all tokens with optional filtering, sorting, and pagination
  */
-router.get(
-  '/tokens',
-  asyncHandler(async (req, res) => {
+router.get('/tokens', tokensQueryValidator, handleValidationErrors, asyncHandler(async (req, res) => {
     const {
       timePeriod,
       minVolume,
@@ -25,14 +32,14 @@ router.get(
       protocol,
       sortBy,
       sortOrder,
-      limit = '30',
+      limit = '50',
       cursor,
     } = req.query;
 
     // Validate limit
     const parsedLimit = parseInt(limit as string, 10);
-    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
-      throw new ValidationError('Limit must be between 1 and 100');
+    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 500) {
+      throw new ValidationError('Limit must be between 1 and 500');
     }
 
     // Build filter options
@@ -49,10 +56,12 @@ router.get(
     const sortOptions: SortOptions = {
       sortBy: sortBy as SortOptions['sortBy'],
       sortOrder: sortOrder as SortOptions['sortOrder'],
+      timePeriod: timePeriod as SortOptions['timePeriod'],
     };
 
     // Get all tokens
     let tokens = await aggregationService.getAllTokens();
+    if (!Array.isArray(tokens)) tokens = [];
 
     // Apply filters
     tokens = aggregationService.filterTokens(tokens, filters);
@@ -60,13 +69,26 @@ router.get(
     // Apply sorting
     tokens = aggregationService.sortTokens(tokens, sortOptions);
 
+    // Build a fingerprint of current filters+sort so cursors are only valid for the same view
+    const fingerprint = Buffer.from(JSON.stringify({ filters, sortOptions })).toString('base64');
+
     // Apply pagination
-    const startIndex = cursor ? decodeCursor(cursor as string) : 0;
+    let startIndex = 0;
+    if (cursor && typeof cursor === 'string') {
+      const decoded: any = decodeCursor(cursor as string);
+      if (decoded && typeof decoded.index === 'number' && (!decoded.fingerprint || decoded.fingerprint === fingerprint)) {
+        startIndex = decoded.index;
+      } else {
+        // invalid or mismatched cursor: reset to start
+        startIndex = 0;
+      }
+    }
     const endIndex = startIndex + parsedLimit;
     const paginatedTokens = tokens.slice(startIndex, endIndex);
 
-    // Generate next cursor
-    const nextCursor = endIndex < tokens.length ? generateCursor(endIndex) : undefined;
+    // Generate next and previous cursors for cursor-based pagination
+    const nextCursor = endIndex < tokens.length ? generateCursor({ index: endIndex, fingerprint }) : undefined;
+    const prevCursor = startIndex > 0 ? generateCursor({ index: Math.max(0, startIndex - parsedLimit), fingerprint }) : undefined;
 
     const response: ApiResponse<TokenData[]> = {
       success: true,
@@ -74,6 +96,8 @@ router.get(
       pagination: {
         limit: parsedLimit,
         nextCursor,
+        prevCursor,
+        totalCount: tokens.length,
       },
     };
 
@@ -85,9 +109,7 @@ router.get(
  * GET /api/tokens/search
  * Search tokens by query
  */
-router.get(
-  '/tokens/search',
-  asyncHandler(async (req, res) => {
+router.get('/tokens/search', searchQueryValidator, handleValidationErrors, asyncHandler(async (req, res) => {
     const { q, limit = '20', cursor } = req.query;
 
     if (!q || typeof q !== 'string') {
@@ -95,17 +117,31 @@ router.get(
     }
 
     const parsedLimit = parseInt(limit as string, 10);
-    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
-      throw new ValidationError('Limit must be between 1 and 100');
+    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 500) {
+      throw new ValidationError('Limit must be between 1 and 500');
     }
 
-    const tokens = await aggregationService.searchTokens(q);
+    let tokens = await aggregationService.searchTokens(q);
+    if (!Array.isArray(tokens)) tokens = [];
+
+    // Fingerprint the query so search cursors are tied to the same query
+    const fingerprint = Buffer.from(String(q)).toString('base64');
 
     // Apply pagination
-    const startIndex = cursor ? decodeCursor(cursor as string) : 0;
+    let startIndex = 0;
+    if (cursor && typeof cursor === 'string') {
+      const decoded: any = decodeCursor(cursor as string);
+      if (decoded && typeof decoded.index === 'number' && (!decoded.fingerprint || decoded.fingerprint === fingerprint)) {
+        startIndex = decoded.index;
+      } else {
+        startIndex = 0;
+      }
+    }
+
     const endIndex = startIndex + parsedLimit;
     const paginatedTokens = tokens.slice(startIndex, endIndex);
-    const nextCursor = endIndex < tokens.length ? generateCursor(endIndex) : undefined;
+    const nextCursor = endIndex < tokens.length ? generateCursor({ index: endIndex, fingerprint }) : undefined;
+    const prevCursor = startIndex > 0 ? generateCursor({ index: Math.max(0, startIndex - parsedLimit), fingerprint }) : undefined;
 
     const response: ApiResponse<TokenData[]> = {
       success: true,
@@ -113,6 +149,8 @@ router.get(
       pagination: {
         limit: parsedLimit,
         nextCursor,
+        prevCursor,
+        totalCount: tokens.length,
       },
     };
 
@@ -124,9 +162,7 @@ router.get(
  * POST /api/cache/invalidate
  * Invalidate cache
  */
-router.post(
-  '/cache/invalidate',
-  asyncHandler(async (_req, res) => {
+router.post('/cache/invalidate', apiKeyMiddleware, asyncHandler(async (_req, res) => {
     await aggregationService.invalidateCache();
 
     res.json({
@@ -142,6 +178,7 @@ router.post(
    */
   router.get(
     '/cache/status',
+    apiKeyMiddleware,
     asyncHandler(async (_req, res) => {
       const usingInMemory = cacheManager.isUsingInMemory();
       const keys = await cacheManager.keys('*');
@@ -171,4 +208,82 @@ router.get('/health', (_req, res) => {
   });
 });
 
+/**
+ * GET /api/metrics
+ * Protected endpoint to return in-memory metrics
+ */
+router.get('/metrics', apiKeyMiddleware, (_req, res) => {
+  try {
+    res.json({ success: true, data: metrics.getAll() });
+  } catch (e) {
+    logger.error('Failed to read metrics', { error: e });
+    res.status(500).json({ success: false, error: 'Failed to read metrics' });
+  }
+});
+
+/**
+ * GET /api/db/status
+ * Returns DB readiness and snapshot count
+ */
+router.get('/db/status', apiKeyMiddleware, asyncHandler(async (_req, res) => {
+  const ready = await (async () => {
+    try {
+      return await (require('../services/db.service').dbService as any).isReady();
+    } catch (e) {
+      return false;
+    }
+  })();
+
+  const count = await (async () => {
+    try {
+      return await (require('../services/db.service').dbService as any).countSnapshots();
+    } catch (e) {
+      return 0;
+    }
+  })();
+
+  res.json({ success: true, data: { ready, snapshotCount: count } });
+}));
+
+/**
+ * POST /api/db/cleanup
+ * Manually trigger snapshot cleanup
+ */
+router.post('/db/cleanup', apiKeyMiddleware, asyncHandler(async (_req, res) => {
+  const retentionDays = parseInt(process.env.SNAPSHOT_RETENTION_DAYS || '7', 10);
+  const deletedCount = await (async () => {
+    try {
+      return await (require('../services/db.service').dbService as any).cleanupOldSnapshots(retentionDays);
+    } catch (e) {
+      logger.error('Manual cleanup failed', { error: e });
+      return 0;
+    }
+  })();
+
+  res.json({
+    success: true,
+    data: {
+      deletedCount,
+      retentionDays,
+      message: `Cleaned up ${deletedCount} snapshots older than ${retentionDays} days`,
+    },
+  });
+}));
+
 export default router;
+
+// Dev-only route to toggle expanded upstream fetches without restart
+// Enabled only when NODE_ENV === 'development'
+if ((config.server.env || '').toLowerCase() === 'development') {
+  router.post('/dev/expand-upstream', asyncHandler(async (req, res) => {
+    const { enable } = req.body || {};
+    if (typeof enable !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'Request body must include boolean `enable`' });
+    }
+    // mutate config in-memory for local testing
+    (config as any).dev = (config as any).dev || {};
+    (config as any).dev.expandUpstream = enable;
+    return res.json({ success: true, data: { expandUpstream: enable } });
+  }));
+}
+

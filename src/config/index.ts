@@ -47,11 +47,33 @@ export const config = {
   websocket: {
     updateInterval: parseInt(process.env.WS_UPDATE_INTERVAL || '5000', 10),
   },
+  dev: {
+    expandUpstream: (process.env.DEV_EXPAND_UPSTREAM || 'false').toLowerCase() === 'true',
+  },
   scheduler: {
     cronSchedule: process.env.CRON_SCHEDULE || '*/30 * * * * *', // every 30 seconds
   },
   api: {
     dexScreener: 'https://api.dexscreener.com/latest/dex',
     jupiter: 'https://lite-api.jup.ag/tokens/v2',
+  },
+  upstream: {
+    // requests per minute and concurrency defaults; can be overridden with env vars
+    dexscreenerRatePerMinute: parseInt(process.env.DEXSCREENER_RATE_PER_MINUTE || '300', 10),
+    jupiterRatePerMinute: parseInt(process.env.JUPITER_RATE_PER_MINUTE || '300', 10),
+    dexscreenerConcurrency: parseInt(process.env.DEXSCREENER_CONCURRENCY || '5', 10),
+    jupiterConcurrency: parseInt(process.env.JUPITER_CONCURRENCY || '5', 10),
+    // discovery queries and per-query caps (can be tuned via env)
+    dexscreenerQueries: (process.env.DEXSCREENER_QUERIES || 'SOL,BONK,WIF,POPCAT,DOGE,PEPE,MOON,INU,SHIB,USDC,USDT,SRM,ORCA,RAY,SOLO').split(','),
+    jupiterQueries: (process.env.JUPITER_QUERIES || 'SOL,USDC,BONK,WIF,DOGE,PEPE,MOON,INU,SHIB,USDT,SRM,ORCA,RAY').split(','),
+    // increase defaults so aggregator can gather more tokens per discovery query
+    dexscreenerPerQueryCap: parseInt(process.env.DEXSCREENER_PER_QUERY_CAP || '100', 10),
+    jupiterPerQueryCap: parseInt(process.env.JUPITER_PER_QUERY_CAP || '50', 10),
+    geckoTerminalEnabled: (process.env.GECKO_ENABLED || 'false').toLowerCase() === 'true',
+    geckoTerminalBase: process.env.GECKO_BASE || 'https://api.geckoterminal.com/api/v2',
+  },
+  coinGecko: {
+    apiKey: process.env.COINGECKO_API_KEY || undefined,
+    base: process.env.COINGECKO_BASE || 'https://api.coingecko.com/api/v3',
   },
 };
