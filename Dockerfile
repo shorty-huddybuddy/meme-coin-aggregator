@@ -1,22 +1,33 @@
-# Backend-only Dockerfile for Railway
-FROM node:20-alpine AS builder
+# Stage 1: Build Frontend
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app/client
+
+COPY client/package*.json ./
+
+# Install dependencies with proper optional dependencies handling
+RUN npm install --no-optional && \
+    npm install --save-optional @rollup/rollup-linux-x64-musl
+
+COPY client/ ./
+
+# Override build output to dist directory for Docker build
+RUN npx vite build --outDir dist
+
+# Stage 2: Build Backend
+FROM node:20-alpine AS backend-builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and source
 COPY package*.json ./
 COPY tsconfig.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source
 COPY src ./src
 
-# Build TypeScript
-RUN npm run build
+# Install dependencies (postinstall will build)
+RUN npm ci
 
-# Production stage
+# Stage 3: Production (Backend + Frontend)
 FROM node:20-alpine
 
 WORKDIR /app
@@ -30,8 +41,11 @@ RUN npm pkg delete scripts.postinstall
 # Install production dependencies only
 RUN npm ci --only=production
 
-# Copy built files
-COPY --from=builder /app/dist ./dist
+# Copy backend build
+COPY --from=backend-builder /app/dist ./dist
+
+# Copy frontend build to public directory
+COPY --from=frontend-builder /app/client/dist ./public
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
