@@ -8,6 +8,13 @@ class CacheManager {
   private useInMemory: boolean = false;
 
   constructor() {
+    // Skip Redis if explicitly disabled
+    if (process.env.DISABLE_REDIS === 'true') {
+      console.log('⚡ Using in-memory cache (Redis disabled via DISABLE_REDIS)');
+      this.useInMemory = true;
+      return;
+    }
+
     try {
       console.log(`🔌 Attempting Redis connection to ${config.redis.host}:${config.redis.port}`);
       
