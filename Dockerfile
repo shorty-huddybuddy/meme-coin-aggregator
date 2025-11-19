@@ -11,6 +11,9 @@ RUN npm install --no-optional && \
 
 COPY client/ ./
 
+# Build with empty VITE_API_URL so it uses relative paths in production
+ENV VITE_API_URL=
+
 # Override build output to dist directory for Docker build
 RUN npx vite build --outDir dist
 
@@ -55,6 +58,7 @@ RUN addgroup -g 1001 -S nodejs && \
 USER nodejs
 
 ENV NODE_ENV=production
+ENV PORT=8080
 
 EXPOSE 8080
 

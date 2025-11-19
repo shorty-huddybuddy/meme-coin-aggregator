@@ -42,7 +42,9 @@ export function TokenList() {
       }
     };
 
-    wsService.connect('http://localhost:3000', handleUpdate);
+    // Use environment variable or current origin for WebSocket
+    const wsUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    wsService.connect(wsUrl, handleUpdate);
 
     // Load initial data from API (respects filters & sort)
     fetchTokens();
