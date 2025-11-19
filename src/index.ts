@@ -4,8 +4,8 @@ import helmet from 'helmet';
 import path from 'path';
 import { config } from './config';
 import { errorHandler } from './middleware/error.middleware';
-import  loggingMiddleware  from './middleware/logging.middleware';
-import  securityMiddleware  from './middleware/security.middleware';
+import loggingMiddleware from './middleware/logging.middleware';
+import securityMiddleware, { apiLimiter } from './middleware/security.middleware';
 import apiRoutes from './routes/api.routes';
 import { cacheManager } from './services/cache.service';
 import { startWebSocketServer } from './services/websocket.service';
@@ -36,6 +36,9 @@ class App {
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     this.app.use(loggingMiddleware);
     this.app.use(securityMiddleware);
+    
+    // Apply rate limiting to API routes
+    this.app.use('/api', apiLimiter);
   }
 
   private setupRoutes(): void {
