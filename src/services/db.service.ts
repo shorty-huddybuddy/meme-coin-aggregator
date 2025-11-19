@@ -14,6 +14,15 @@ class DBService {
     let port = parseInt(process.env.PGPORT || process.env.POSTGRES_PORT ||  '5432', 10);
     let database = process.env.PGDATABASE || process.env.POSTGRES_DB ;
 
+    // Detect whether any Postgres configuration was supplied. If not, we will
+    // avoid creating a Pool to prevent ECONNREFUSED spam (common when the
+    // service runs without attached Railway Shared Variables).
+    const hasPgEnv = !!(
+      process.env.DATABASE_URL ||
+      process.env.PGHOST || process.env.PGPORT || process.env.PGUSER || process.env.PGDATABASE ||
+      process.env.POSTGRES_HOST || process.env.POSTGRES_PORT || process.env.POSTGRES_USER || process.env.POSTGRES_DB
+    );
+
     if (databaseUrl) {
       try {
         const url = new URL(databaseUrl);
@@ -29,10 +38,18 @@ class DBService {
     }
 
     // Non-secret debug log to help verify which host/port the app will use.
-    // This prints only host/port/database (no credentials).
-    // It makes it easy to see in Railway logs whether DATABASE_URL was picked up.
+    // This prints only host/port/database (no credentials) and whether a DB
+    // configuration was detected.
     // eslint-disable-next-line no-console
-    console.log(`DB config: host=${host} port=${port} database=${database}`);
+    console.log(`DB config: host=${host} port=${port} database=${database} configured=${hasPgEnv}`);
+
+    if (!hasPgEnv) {
+      // eslint-disable-next-line no-console
+      console.warn('Postgres not configured: skipping Pool creation. Attach DATABASE_URL or PG*/POSTGRES_* vars to enable DB.');
+      this.pool = null;
+      this.connected = false;
+      return;
+    }
 
     this.pool = new Pool({ user, host, database, password, port });
   }
