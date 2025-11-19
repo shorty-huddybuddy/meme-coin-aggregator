@@ -54,6 +54,11 @@ export function TokenList() {
     };
   }, []);
 
+  // Auto-apply filters when they change
+  useEffect(() => {
+    applyFilters();
+  }, [timePeriod, minVolumeInput, protocol, sortBy, sortOrder, pageSize]);
+
   async function fetchTokens(cursor?: string) {
     setLoading(true);
     try {

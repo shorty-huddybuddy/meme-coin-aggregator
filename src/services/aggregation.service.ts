@@ -167,8 +167,13 @@ export class AggregationService {
         return false;
       }
 
-      if (filters.protocol && token.protocol !== filters.protocol) {
-        return false;
+      if (filters.protocol) {
+        // Case-insensitive partial match for protocol
+        const protocolLower = filters.protocol.toLowerCase();
+        const tokenProtocolLower = (token.protocol || '').toLowerCase();
+        if (!tokenProtocolLower.includes(protocolLower)) {
+          return false;
+        }
       }
 
       return true;
