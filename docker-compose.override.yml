@@ -11,4 +11,3 @@ services:
     command: ["sh", "-c", "npm ci --silent && npm run dev"]
     depends_on:
       - redis
-      - db

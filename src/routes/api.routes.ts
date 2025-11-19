@@ -221,55 +221,6 @@ router.get('/metrics', apiKeyMiddleware, (_req, res) => {
   }
 });
 
-/**
- * GET /api/db/status
- * Returns DB readiness and snapshot count
- */
-router.get('/db/status', apiKeyMiddleware, asyncHandler(async (_req, res) => {
-  const ready = await (async () => {
-    try {
-      return await (require('../services/db.service').dbService as any).isReady();
-    } catch (e) {
-      return false;
-    }
-  })();
-
-  const count = await (async () => {
-    try {
-      return await (require('../services/db.service').dbService as any).countSnapshots();
-    } catch (e) {
-      return 0;
-    }
-  })();
-
-  res.json({ success: true, data: { ready, snapshotCount: count } });
-}));
-
-/**
- * POST /api/db/cleanup
- * Manually trigger snapshot cleanup
- */
-router.post('/db/cleanup', apiKeyMiddleware, asyncHandler(async (_req, res) => {
-  const retentionDays = parseInt(process.env.SNAPSHOT_RETENTION_DAYS || '7', 10);
-  const deletedCount = await (async () => {
-    try {
-      return await (require('../services/db.service').dbService as any).cleanupOldSnapshots(retentionDays);
-    } catch (e) {
-      logger.error('Manual cleanup failed', { error: e });
-      return 0;
-    }
-  })();
-
-  res.json({
-    success: true,
-    data: {
-      deletedCount,
-      retentionDays,
-      message: `Cleaned up ${deletedCount} snapshots older than ${retentionDays} days`,
-    },
-  });
-}));
-
 export default router;
 
 // Dev-only route to toggle expanded upstream fetches without restart
