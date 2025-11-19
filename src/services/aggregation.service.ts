@@ -78,8 +78,8 @@ export class AggregationService {
       console.warn('Skipping CoinGecko USD enrichment');
     }
 
-    // Cache for 2x TTL to reduce re-aggregation frequency
-    await cacheManager.set(CacheKey.ALL_TOKENS, mergedTokens, config.cache.ttl * 2);
+    // Cache for 4x TTL to reduce re-aggregation frequency (8 minutes with default config)
+    await cacheManager.set(CacheKey.ALL_TOKENS, mergedTokens, config.cache.ttl * 4);
     return mergedTokens;
     } catch (timeoutError) {
       console.error('Aggregation timeout - returning empty array');

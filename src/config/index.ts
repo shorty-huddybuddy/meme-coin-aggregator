@@ -45,14 +45,14 @@ export const config = {
     db: parseInt(process.env.REDIS_DB || '0', 10),
   },
   cache: {
-    ttl: parseInt(process.env.CACHE_TTL || '60', 10), // seconds (increased for better performance)
+    ttl: parseInt(process.env.CACHE_TTL || '120', 10), // 2 minutes for better performance
   },
   rateLimit: {
     dexScreener: parseInt(process.env.DEXSCREENER_RATE_LIMIT || '300', 10),
     window: parseInt(process.env.RATE_LIMIT_WINDOW || '60000', 10), // milliseconds
   },
   websocket: {
-    updateInterval: parseInt(process.env.WS_UPDATE_INTERVAL || '5000', 10),
+    updateInterval: parseInt(process.env.WS_UPDATE_INTERVAL || '10000', 10), // 10s updates
   },
   dev: {
     expandUpstream: (process.env.DEV_EXPAND_UPSTREAM || 'false').toLowerCase() === 'true',
@@ -71,11 +71,11 @@ export const config = {
     dexscreenerConcurrency: parseInt(process.env.DEXSCREENER_CONCURRENCY || '3', 10),
     jupiterConcurrency: parseInt(process.env.JUPITER_CONCURRENCY || '3', 10),
     // discovery queries and per-query caps (balanced for speed and coverage)
-    dexscreenerQueries: (process.env.DEXSCREENER_QUERIES || 'SOL,BONK,WIF,POPCAT,PEPE,DOGE,SHIB,MEME,MOON,TRUMP').split(','),
-    jupiterQueries: (process.env.JUPITER_QUERIES || 'SOL,BONK,WIF,PEPE,DOGE').split(','),
+    dexscreenerQueries: (process.env.DEXSCREENER_QUERIES || 'SOL,BONK,WIF,POPCAT,PEPE,TRUMP,MEME').split(','),
+    jupiterQueries: (process.env.JUPITER_QUERIES || 'SOL,BONK,WIF,PEPE').split(','),
     // Balanced defaults for good token count with reasonable speed
-    dexscreenerPerQueryCap: parseInt(process.env.DEXSCREENER_PER_QUERY_CAP || '30', 10),
-    jupiterPerQueryCap: parseInt(process.env.JUPITER_PER_QUERY_CAP || '25', 10),
+    dexscreenerPerQueryCap: parseInt(process.env.DEXSCREENER_PER_QUERY_CAP || '40', 10),
+    jupiterPerQueryCap: parseInt(process.env.JUPITER_PER_QUERY_CAP || '30', 10),
     geckoTerminalEnabled: (process.env.GECKO_ENABLED || 'true').toLowerCase() === 'true',
     geckoTerminalBase: process.env.GECKO_BASE || 'https://api.geckoterminal.com/api/v2',
   },
