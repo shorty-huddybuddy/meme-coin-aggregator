@@ -71,7 +71,8 @@ export class WebSocketService {
 
   private async sendInitialData(socket: Socket): Promise<void> {
     try {
-      const tokens = await this.aggregationService.getAllTokens();
+      // Use cached data for faster initial response
+      const tokens = await this.aggregationService.getAllTokens(true);
       // Apply any existing socket filters to the initial payload
       // @ts-ignore
       const filters: Record<string, any> = (socket.data && socket.data.filters) || {};

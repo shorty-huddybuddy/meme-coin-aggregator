@@ -45,7 +45,7 @@ export const config = {
     db: parseInt(process.env.REDIS_DB || '0', 10),
   },
   cache: {
-    ttl: parseInt(process.env.CACHE_TTL || '30', 10), // seconds
+    ttl: parseInt(process.env.CACHE_TTL || '60', 10), // seconds (increased for better performance)
   },
   rateLimit: {
     dexScreener: parseInt(process.env.DEXSCREENER_RATE_LIMIT || '300', 10),

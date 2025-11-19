@@ -26,7 +26,7 @@ export class AggregationService {
     const [dexTokens, jupiterTokens, geckoTokens] = await Promise.allSettled([
       this.dexScreener.getTrendingTokens(),
       this.jupiter.getPopularTokens(),
-      geckoTerminalService.collectTokens(10),
+      geckoTerminalService.collectTokens(3), // Reduced from 10 to 3 pages for faster response
     ]);
 
     const allTokens: TokenData[] = [];
