@@ -244,31 +244,44 @@ eternal-lab/
 
 ## 🚀 Deployment
 
-### Option 1: Railway (Recommended for WebSocket)
-```powershell
-# Install Railway CLI
-npm install -g @railway/cli
+### Deploy to Railway (Recommended)
 
-# Login and deploy
+Railway automatically builds and deploys using Nixpacks:
+
+```powershell
+# Quick deploy
+npm install -g @railway/cli
 railway login
 railway init
+railway add  # Select: Redis
 railway up
+railway domain
+
+# Your app is live!
 ```
 
-### Run locally with Docker Compose
-
-If you want a reproducible local environment that includes Redis, use Docker Compose.
+### Verify Deployment
 
 ```powershell
-# Start services (builds app image, starts Redis)
-docker compose up --build
+# Get your URL
+$url = railway domain
 
-# In another terminal: run tests (container uses compiled `dist`)
-docker compose exec app npm test
+# Test endpoints
+Invoke-RestMethod "$url/health"
+Invoke-RestMethod "$url/api/tokens?limit=5"
 
-# Stop and remove containers
-docker compose down
+# Open demo
+Start-Process "$url/demo.html"
 ```
+
+### Environment Variables (Auto-configured by Railway)
+
+Railway automatically sets:
+- `REDIS_URL` - Connection string
+- `PORT` - Server port (auto-assigned)
+- `NODE_ENV` - Set to "production"
+
+No manual configuration needed! ✨
 
 ### Option 2: Render
 1. Connect GitHub repository
