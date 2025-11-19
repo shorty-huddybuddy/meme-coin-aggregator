@@ -22,7 +22,10 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
+# Remove postinstall script temporarily to avoid build in production stage
+RUN npm pkg delete scripts.postinstall
+
+# Install production dependencies only (no build needed)
 RUN npm ci --only=production
 
 # Copy built files from builder stage
