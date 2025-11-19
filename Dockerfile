@@ -36,9 +36,7 @@ COPY --from=server-builder /app/dist ./dist
 # Copy client build to public
 COPY --from=client-builder /app/client/dist ./public
 
-# Also copy any static files from root public if they exist
-COPY public ./public 2>/dev/null || true
-
+# Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
     chown -R nodejs:nodejs /app
