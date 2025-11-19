@@ -58,9 +58,9 @@ export class DexScreenerService {
 
   async getTrendingTokens(): Promise<TokenData[]> {
     try {
-      // Limit to top 5 queries for faster response, only uppercase (case-insensitive on most)
-      const queries = (config.upstream.dexscreenerQueries || ['SOL', 'BONK', 'WIF', 'POPCAT']).slice(0, 5);
-      const perQueryCap = config.upstream.dexscreenerPerQueryCap || 20;
+      // Use all configured queries for better token coverage
+      const queries = config.upstream.dexscreenerQueries || ['SOL', 'BONK', 'WIF', 'POPCAT', 'PEPE'];
+      const perQueryCap = config.upstream.dexscreenerPerQueryCap || 30;
       const seenAddresses = new Set<string>();
 
       // Parallel execution with Promise.allSettled for speed

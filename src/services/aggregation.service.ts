@@ -34,7 +34,7 @@ export class AggregationService {
         Promise.allSettled([
           this.dexScreener.getTrendingTokens(),
           this.jupiter.getPopularTokens(),
-          geckoTerminalService.collectTokens(1), // Only 1 page for speed
+          geckoTerminalService.collectTokens(2), // 2 pages for better coverage
         ]),
         aggregationTimeout
       ]) as PromiseSettledResult<TokenData[]>[];
@@ -88,34 +88,19 @@ export class AggregationService {
   }
 
   async searchTokens(query: string, useCache: boolean = true): Promise<TokenData[]> {
-    const cacheKey = `${CacheKey.SEARCH_PREFIX}${query}`;
+    // Optimize: search within already aggregated tokens instead of making new API calls
+    const allTokens = await this.getAllTokens(useCache);
+    
+    const queryLower = query.toLowerCase();
+    const results = allTokens.filter((token) => {
+      return (
+        token.token_name?.toLowerCase().includes(queryLower) ||
+        token.token_ticker?.toLowerCase().includes(queryLower) ||
+        token.token_address?.toLowerCase().includes(queryLower)
+      );
+    });
 
-    if (useCache) {
-      const cached = await cacheManager.get<TokenData[]>(cacheKey);
-      if (cached) {
-        return cached;
-      }
-    }
-
-    const [dexResults, jupiterResults] = await Promise.allSettled([
-      this.dexScreener.searchTokens(query),
-      this.jupiter.searchTokens(query),
-    ]);
-
-    const allTokens: TokenData[] = [];
-
-    if (dexResults.status === 'fulfilled') {
-      allTokens.push(...dexResults.value);
-    }
-
-    if (jupiterResults.status === 'fulfilled') {
-      allTokens.push(...jupiterResults.value);
-    }
-
-    const mergedTokens = this.mergeTokens(allTokens);
-    await cacheManager.set(cacheKey, mergedTokens);
-
-    return mergedTokens;
+    return results;
   }
 
   mergeTokens(tokens: TokenData[]): TokenData[] {
