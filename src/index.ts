@@ -71,6 +71,52 @@ class App {
       return res.redirect('/demo.html');
     });
 
+    // Debug endpoint (non-secret): shows which DB envs the process sees.
+    // Returns only host/port/database presence — NEVER return passwords or full URLs.
+    this.app.get('/debug/env', (_req, res) => {
+      try {
+        const databaseUrl = process.env.DATABASE_URL || null;
+        const pgHost = process.env.PGHOST || null;
+        const pgPort = process.env.PGPORT || null;
+        const pgDatabase = process.env.PGDATABASE || null;
+        const pgPresent = !!(databaseUrl || pgHost || process.env.POSTGRES_HOST || process.env.POSTGRES_DB);
+
+        // Attempt to parse host/port/database from DATABASE_URL if present (non-secret)
+        let resolvedHost: string | null = null;
+        let resolvedPort: string | null = null;
+        let resolvedDb: string | null = null;
+        if (databaseUrl) {
+          try {
+            const u = new URL(databaseUrl);
+            resolvedHost = u.hostname || null;
+            resolvedPort = u.port || null;
+            resolvedDb = u.pathname ? u.pathname.replace(/^\//, '') : null;
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        // Fallbacks
+        resolvedHost = resolvedHost || process.env.POSTGRES_HOST || pgHost || null;
+        resolvedPort = resolvedPort || process.env.POSTGRES_PORT || pgPort || null;
+        resolvedDb = resolvedDb || process.env.POSTGRES_DB || pgDatabase || null;
+
+        return res.json({
+          ok: true,
+          env: {
+            databaseUrl: !!databaseUrl,
+            pgPresent,
+            resolvedHost,
+            resolvedPort,
+            resolvedDb,
+            using: databaseUrl ? 'DATABASE_URL' : (process.env.POSTGRES_HOST || process.env.PGHOST ? 'PG/POSTGRES vars' : 'none'),
+          },
+        });
+      } catch (e) {
+        return res.status(500).json({ ok: false, error: 'debug endpoint failed' });
+      }
+    });
+
     // Log where the server will look for static files so deployments are easier to debug
     const checkPaths = [
       path.join(process.cwd(), 'public', 'demo.html'),
