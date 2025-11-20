@@ -276,7 +276,9 @@ export function TokenList() {
                       {change >= 0 ? '+' : ''}
                       {change.toFixed(2)}%
                     </td>
-                    <td className="protocol">{token.protocol}</td>
+                    <td>
+                      <span className="protocol">{token.protocol}</span>
+                    </td>
                   </tr>
                 );
               })}
