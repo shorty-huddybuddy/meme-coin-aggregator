@@ -1,6 +1,36 @@
 # Meme Coin Aggregator - Real-time Data Service
 
+🔗 **Live Demo**: [https://meme-coin-aggregator-production.up.railway.app](https://meme-coin-aggregator-production.up.railway.app)
+
+📺 **Demo Video**: [YouTube Demo Link](YOUR_YOUTUBE_LINK_HERE)
+
+📦 **GitHub Repository**: [https://github.com/shorty-huddybuddy/meme-coin-aggregator](https://github.com/shorty-huddybuddy/meme-coin-aggregator)
+
 A high-performance real-time meme coin data aggregation service that combines data from multiple DEX sources (DexScreener & Jupiter) with efficient caching, WebSocket support, and REST API.
+
+## 🚀 Quick Start
+
+**Try the Live API**:
+```bash
+# Health check
+curl https://meme-coin-aggregator-production.up.railway.app/api/health
+
+# Get top 10 tokens
+curl "https://meme-coin-aggregator-production.up.railway.app/api/tokens?limit=10&sortBy=volume"
+
+# Search for BONK
+curl "https://meme-coin-aggregator-production.up.railway.app/api/tokens/search?q=BONK"
+```
+
+**WebSocket Connection**:
+```javascript
+const socket = io('https://meme-coin-aggregator-production.up.railway.app');
+socket.on('initial_data', (msg) => console.log('Got tokens:', msg.data.length));
+socket.on('price_update', (msg) => console.log('Price updates:', msg.updates.length));
+```
+
+**View Demo UI**:
+Open [https://meme-coin-aggregator-production.up.railway.app](https://meme-coin-aggregator-production.up.railway.app) in your browser
 
 ## 🚀 Features
 
@@ -12,6 +42,12 @@ A high-performance real-time meme coin data aggregation service that combines da
 - **Advanced Filtering**: Filter by volume, market cap, protocol, time periods
 - **Flexible Sorting**: Sort by volume, price change, market cap, liquidity, transaction count
 - **Cursor-based Pagination**: Efficient pagination for large datasets
+
+## 📚 Documentation
+
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)**: Detailed system architecture, design decisions, and scalability considerations
+- **[Postman Collection](./postman_collection.json)**: Import into Postman for API testing
+- **[API Documentation](#-api-endpoints)**: See below for endpoint details
 
 ## 📋 Prerequisites
 

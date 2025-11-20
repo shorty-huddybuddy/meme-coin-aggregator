@@ -172,6 +172,20 @@ router.post('/cache/invalidate', apiKeyMiddleware, asyncHandler(async (_req, res
   })
 );
 
+/**
+ * POST /api/cache/flush
+ * Flush entire Redis cache (dev/testing only)
+ */
+router.post('/cache/flush', asyncHandler(async (_req, res) => {
+    await cacheManager.flushAll();
+
+    res.json({
+      success: true,
+      data: { message: 'Redis cache flushed successfully' },
+    });
+  })
+);
+
   /**
    * GET /api/cache/status
    * Returns whether Redis is used or in-memory fallback and sample keys
