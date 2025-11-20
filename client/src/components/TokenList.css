@@ -249,7 +249,8 @@ tbody tr.updated {
     background: transparent;
   }
   50% {
-    background: rgba(16, 185, 129, 0.2);
+    background: rgba(16, 185, 129, 0.35);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
   }
 }
 
