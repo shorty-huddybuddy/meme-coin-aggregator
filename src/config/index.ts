@@ -5,10 +5,14 @@ dotenv.config();
 // Parse Redis URL if provided (Railway format)
 const parseRedisUrl = () => {
   // Debug: Log ALL environment variables that contain "REDIS"
-  console.log('\n🔍 ALL Redis-related environment variables:');
-  Object.keys(process.env)
-    .filter(key => key.toUpperCase().includes('REDIS'))
-    .forEach(key => {
+  console.log('\n🔍 CHECKING ALL Redis-related environment variables:');
+  const redisEnvVars = Object.keys(process.env).filter(key => key.toUpperCase().includes('REDIS'));
+  
+  if (redisEnvVars.length === 0) {
+    console.log('  ⚠️  NO REDIS ENVIRONMENT VARIABLES FOUND!');
+    console.log('  Railway may not be injecting variables. Check Railway dashboard.');
+  } else {
+    redisEnvVars.forEach(key => {
       const value = process.env[key];
       if (value) {
         const masked = key.includes('PASSWORD') || key.includes('PASS')
@@ -16,9 +20,10 @@ const parseRedisUrl = () => {
           : value.includes('://') 
             ? value.substring(0, 30) + '...'
             : value;
-        console.log(`  ${key} = ${masked}`);
+        console.log(`  ✓ ${key} = ${masked}`);
       }
     });
+  }
   console.log('');
   
   // Railway priority: REDIS_PRIVATE_URL > REDIS_URL > REDIS_PUBLIC_URL > individual vars
