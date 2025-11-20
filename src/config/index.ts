@@ -4,16 +4,24 @@ dotenv.config();
 
 // Parse Redis URL if provided (Railway format)
 const parseRedisUrl = () => {
-  // Debug: Log all Redis-related env vars with actual values (masked)
-  console.log('🔍 Checking Redis environment variables:');
-  console.log('  REDIS_URL:', process.env.REDIS_URL ? '✓ Set' : '✗ Not set', process.env.REDIS_URL ? `(${process.env.REDIS_URL.substring(0, 20)}...)` : '');
-  console.log('  REDIS_PRIVATE_URL:', process.env.REDIS_PRIVATE_URL ? '✓ Set' : '✗ Not set');
-  console.log('  REDIS_PUBLIC_URL:', process.env.REDIS_PUBLIC_URL ? '✓ Set' : '✗ Not set', process.env.REDIS_PUBLIC_URL ? `(${process.env.REDIS_PUBLIC_URL.substring(0, 20)}...)` : '');
-  console.log('  REDISHOST:', process.env.REDISHOST ? '✓ Set' : '✗ Not set', process.env.REDISHOST || '');
-  console.log('  REDISPORT:', process.env.REDISPORT ? '✓ Set' : '✗ Not set', process.env.REDISPORT || '');
-  console.log('  REDISPASSWORD:', process.env.REDISPASSWORD ? '✓ Set' : '✗ Not set', process.env.REDISPASSWORD ? '(hidden)' : '');
+  // Debug: Log ALL environment variables that contain "REDIS"
+  console.log('\n🔍 ALL Redis-related environment variables:');
+  Object.keys(process.env)
+    .filter(key => key.toUpperCase().includes('REDIS'))
+    .forEach(key => {
+      const value = process.env[key];
+      if (value) {
+        const masked = key.includes('PASSWORD') || key.includes('PASS')
+          ? '(hidden)'
+          : value.includes('://') 
+            ? value.substring(0, 30) + '...'
+            : value;
+        console.log(`  ${key} = ${masked}`);
+      }
+    });
+  console.log('');
   
-  // Railway priority: REDIS_PRIVATE_URL > REDIS_URL > individual vars
+  // Railway priority: REDIS_PRIVATE_URL > REDIS_URL > REDIS_PUBLIC_URL > individual vars
   const redisUrl = process.env.REDIS_PRIVATE_URL || process.env.REDIS_URL || process.env.REDIS_PUBLIC_URL;
   
   if (redisUrl) {
