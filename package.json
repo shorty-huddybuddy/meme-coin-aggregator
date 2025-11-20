@@ -12,7 +12,8 @@
     "docker:build": "docker build -t meme-coin-aggregator:latest .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "check:redis": "node check-redis-env.js"
   },
   "keywords": [
     "dex",

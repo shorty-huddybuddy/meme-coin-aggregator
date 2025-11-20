@@ -4,58 +4,62 @@ dotenv.config();
 
 // Parse Redis URL if provided (Railway format)
 const parseRedisUrl = () => {
-  // Try REDIS_URL first (Railway internal URL)
-  const redisUrl = process.env.REDIS_URL || process.env.REDIS_PUBLIC_URL;
+  // Debug: Log all Redis-related env vars
+  console.log('🔍 Checking Redis environment variables:');
+  console.log('  REDIS_URL:', process.env.REDIS_URL ? '✓ Set' : '✗ Not set');
+  console.log('  REDIS_PRIVATE_URL:', process.env.REDIS_PRIVATE_URL ? '✓ Set' : '✗ Not set');
+  console.log('  REDIS_PUBLIC_URL:', process.env.REDIS_PUBLIC_URL ? '✓ Set' : '✗ Not set');
+  console.log('  REDISHOST:', process.env.REDISHOST ? '✓ Set' : '✗ Not set');
+  console.log('  REDISPORT:', process.env.REDISPORT ? '✓ Set' : '✗ Not set');
+  console.log('  REDISPASSWORD:', process.env.REDISPASSWORD ? '✓ Set' : '✗ Not set');
+  
+  // Railway priority: REDIS_PRIVATE_URL > REDIS_URL > individual vars
+  const redisUrl = process.env.REDIS_PRIVATE_URL || process.env.REDIS_URL || process.env.REDIS_PUBLIC_URL;
+  
   if (redisUrl) {
     try {
       // Check if URL contains Railway template variables (not yet resolved)
       if (redisUrl.includes('${{')) {
-        console.warn('⚠️  REDIS_URL contains unresolved template variables - using individual env vars');
+        console.warn('⚠️  REDIS_URL contains unresolved template variables');
+        console.warn('   Raw value:', redisUrl);
+        console.warn('   Falling back to individual env vars');
+      } else {
+        console.log('✓ Using REDIS_URL:', redisUrl.replace(/:[^:]*@/, ':****@')); // Mask password
+        const url = new URL(redisUrl);
         return {
-          host: process.env.REDISHOST || 'localhost',
-          port: parseInt(process.env.REDISPORT || '6379', 10),
-          password: process.env.REDISPASSWORD || undefined,
+          host: url.hostname,
+          port: parseInt(url.port, 10) || 6379,
+          password: url.password || undefined,
         };
       }
-      
-      const url = new URL(redisUrl);
-      return {
-        host: url.hostname,
-        port: parseInt(url.port, 10) || 6379,
-        password: url.password || undefined,
-      };
     } catch (e) {
-      console.warn('Failed to parse REDIS_URL, using individual env vars');
+      console.warn('Failed to parse REDIS_URL:', e instanceof Error ? e.message : 'Unknown error');
     }
   }
   
   // Support Railway's individual env vars
-  return {
-    host: process.env.REDISHOST || process.env.REDIS_HOST || 'localhost',
+  const config = {
+    host: process.env.REDISHOST || process.env.REDIS_HOST || 'redis',
     port: parseInt(process.env.REDISPORT || process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDISPASSWORD || process.env.REDIS_PASSWORD || undefined,
   };
+  
+  console.log('✓ Using individual env vars:');
+  console.log('  Host:', config.host);
+  console.log('  Port:', config.port);
+  console.log('  Password:', config.password ? '****' : 'None');
+  
+  return config;
 };
 
 const redisConfig = parseRedisUrl();
 
-// Debug Redis config (mask password)
-if (process.env.NODE_ENV !== 'production') {
-  console.log('Redis config:', {
-    host: redisConfig.host,
-    port: redisConfig.port,
-    hasPassword: !!redisConfig.password,
-    passwordLength: redisConfig.password?.length || 0
-  });
-} else {
-  // Production: log what env vars are available
-  console.log('Redis env vars:', {
-    REDIS_URL: !!process.env.REDIS_URL,
-    REDISHOST: !!process.env.REDISHOST,
-    REDISPORT: !!process.env.REDISPORT,
-    REDISPASSWORD: !!process.env.REDISPASSWORD
-  });
-}
+console.log('✅ Final Redis config:', {
+  host: redisConfig.host,
+  port: redisConfig.port,
+  hasPassword: !!redisConfig.password,
+  passwordLength: redisConfig.password?.length || 0
+});
 
 export const config = {
   server: {

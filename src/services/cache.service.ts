@@ -20,14 +20,31 @@ class CacheManager {
       const passwordInfo = config.redis.password 
         ? `${config.redis.password.substring(0, 4)}...${config.redis.password.substring(config.redis.password.length - 4)}` 
         : 'NONE';
-      console.log(`🔌 Attempting Redis connection to ${config.redis.host}:${config.redis.port}`);
-      console.log(`   Auth: ${hasPassword ? 'yes' : 'NO'}, Password: ${passwordInfo}`);
+      
+      console.log('\n' + '='.repeat(60));
+      console.log('🔌 REDIS CONNECTION ATTEMPT');
+      console.log('='.repeat(60));
+      console.log(`Host: ${config.redis.host}`);
+      console.log(`Port: ${config.redis.port}`);
+      console.log(`Auth: ${hasPassword ? 'YES ✓' : 'NO ✗'}`);
+      console.log(`Password: ${passwordInfo}`);
+      console.log('='.repeat(60) + '\n');
       
       // If no password and not localhost, skip Redis (Railway issue)
-      if (!hasPassword && config.redis.host !== 'localhost') {
-        console.warn('⚠️  No REDIS_PASSWORD provided for remote Redis. Check Railway variable references.');
-        console.log('   Expected: REDISPASSWORD=${{Redis.REDISPASSWORD}}');
-        console.log('⚡ Using in-memory cache instead.');
+      if (!hasPassword && config.redis.host !== 'localhost' && config.redis.host !== '127.0.0.1') {
+        console.warn('\n⚠️  REDIS CONFIGURATION ISSUE DETECTED!\n');
+        console.warn('Problem: No password provided for remote Redis connection');
+        console.warn(`Host: ${config.redis.host} (not localhost)\n`);
+        console.warn('This usually means Railway environment variables are not configured.\n');
+        console.warn('🔧 TO FIX THIS:');
+        console.warn('   1. Go to Railway Dashboard');
+        console.warn('   2. Click on your meme-coin-aggregator service');
+        console.warn('   3. Go to Variables tab');
+        console.warn('   4. Add: REDIS_PRIVATE_URL=${{Redis.REDIS_PRIVATE_URL}}');
+        console.warn('      (Use Railway\'s dropdown, don\'t type it manually!)');
+        console.warn('   5. Click Deploy\n');
+        console.warn('📖 See RAILWAY_QUICK_FIX.md for detailed instructions\n');
+        console.log('⚡ Using in-memory cache as fallback.');
         this.useInMemory = true;
         return;
       }
