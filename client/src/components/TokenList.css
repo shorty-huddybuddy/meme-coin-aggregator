@@ -4,41 +4,111 @@
   padding: 2rem 1.5rem;
 }
 
-/* Header Section */
-h1 {
-  color: #fff;
-  margin-bottom: 0.5rem;
-  font-size: clamp(2rem, 5vw, 3rem);
-  text-align: center;
-  font-weight: 700;
+/* Professional Header Section */
+.app-header {
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  backdrop-filter: blur(20px);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.logo-section h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #10b981 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -0.02em;
 }
 
-.subtitle {
-  text-align: center;
-  color: #cbd5e1;
-  margin-bottom: 2rem;
-  font-size: clamp(0.875rem, 2vw, 1.125rem);
-  font-weight: 500;
-}
-
-.summary {
-  text-align: center;
-  color: #94a3b8;
-  margin-bottom: 1.5rem;
+.tagline {
+  display: block;
   font-size: 0.875rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
+
+.stats-bar {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  color: #f1f5f9;
+  font-weight: 700;
+  margin-top: 0.25rem;
+}
+
+.live-indicator {
+  color: #10b981;
+  font-size: 1rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Remove old header styles */
 
 .loading {
   text-align: center;
   padding: 4rem 1rem;
   font-size: 1.2rem;
   color: #cbd5e1;
+}
+
+/* Controls Section - Modern DEX Style */
+.controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  border-radius: 16px;
+  margin-bottom: 2rem;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 2px 4px -1px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
 /* Table Container - Professional Dark Theme */
@@ -71,23 +141,6 @@ h1 {
 
 .table-container::-webkit-scrollbar-thumb:hover {
   background: rgba(71, 85, 105, 0.7);
-}
-
-/* Controls Section - Modern DEX Style */
-.controls {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-  padding: 1.5rem;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(71, 85, 105, 0.3);
-  border-radius: 16px;
-  margin-bottom: 2rem;
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.3),
-    0 2px 4px -1px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
 .controls label {
@@ -294,6 +347,20 @@ td {
     padding: 1.5rem 1rem;
   }
 
+  .app-header {
+    padding: 1.5rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats-bar {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .controls {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 0.75rem;
@@ -363,6 +430,22 @@ td {
 @media (max-width: 480px) {
   .token-list {
     padding: 0.75rem 0.5rem;
+  }
+
+  .app-header {
+    padding: 1rem;
+  }
+
+  .logo-section h1 {
+    font-size: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+  }
+
+  .stat-value {
+    font-size: 1rem;
   }
 
   table {

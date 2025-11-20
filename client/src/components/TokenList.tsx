@@ -152,11 +152,24 @@ export function TokenList() {
 
   return (
     <div className="token-list">
-      <h1>🚀 Meme Coin Aggregator</h1>
-      <p className="subtitle">Real-time token data from DexScreener & Jupiter</p>
-      <div className="summary">
-        <small>Showing {tokens.length} {totalCount ? `of ${totalCount}` : ''} tokens</small>
-      </div>
+      <header className="app-header">
+        <div className="header-content">
+          <div className="logo-section">
+            <h1>ETERNAL</h1>
+            <span className="tagline">Solana Token Analytics</span>
+          </div>
+          <div className="stats-bar">
+            <div className="stat-item">
+              <span className="stat-label">Total Tokens</span>
+              <span className="stat-value">{totalCount || tokens.length}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Live Updates</span>
+              <span className="stat-value live-indicator">●</span>
+            </div>
+          </div>
+        </div>
+      </header>
       
       <div className="controls">
         <label>
