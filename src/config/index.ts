@@ -4,21 +4,24 @@ dotenv.config();
 
 // Parse Redis URL if provided (Railway format)
 const parseRedisUrl = () => {
-  // Debug: Log ALL environment variables that contain "REDIS"
-  console.log('\n🔍 CHECKING ALL Redis-related environment variables:');
-  const redisEnvVars = Object.keys(process.env).filter(key => key.toUpperCase().includes('REDIS'));
+  // Debug: Log ALL environment variables that contain "REDIS" or "RAILWAY"
+  console.log('\n🔍 CHECKING ALL Redis/Railway environment variables:');
+  const envVars = Object.keys(process.env).filter(key => 
+    key.toUpperCase().includes('REDIS') || 
+    (key.toUpperCase().includes('RAILWAY') && key.toUpperCase().includes('REDIS'))
+  );
   
-  if (redisEnvVars.length === 0) {
+  if (envVars.length === 0) {
     console.log('  ⚠️  NO REDIS ENVIRONMENT VARIABLES FOUND!');
     console.log('  Railway may not be injecting variables. Check Railway dashboard.');
   } else {
-    redisEnvVars.forEach(key => {
+    envVars.forEach(key => {
       const value = process.env[key];
       if (value) {
         const masked = key.includes('PASSWORD') || key.includes('PASS')
           ? '(hidden)'
           : value.includes('://') 
-            ? value.substring(0, 30) + '...'
+            ? value.substring(0, 50) + '...'
             : value;
         console.log(`  ✓ ${key} = ${masked}`);
       }
@@ -26,8 +29,13 @@ const parseRedisUrl = () => {
   }
   console.log('');
   
-  // Railway priority: REDIS_PRIVATE_URL > REDIS_URL > REDIS_PUBLIC_URL > individual vars
-  const redisUrl = process.env.REDIS_PRIVATE_URL || process.env.REDIS_URL || process.env.REDIS_PUBLIC_URL;
+  // Railway priority: Check Railway auto-generated variables first
+  // Railway creates RAILWAY_SERVICE_<SERVICENAME>_URL automatically
+  const redisUrl = process.env.REDIS_PRIVATE_URL 
+    || process.env.REDIS_URL 
+    || process.env.REDIS_PUBLIC_URL
+    || process.env.RAILWAY_SERVICE_REDIS_DATABSE_URL  // Railway auto-generated
+    || process.env.RAILWAY_TCP_PROXY_URL;
   
   if (redisUrl) {
     try {
