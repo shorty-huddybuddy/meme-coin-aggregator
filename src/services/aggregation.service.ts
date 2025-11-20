@@ -65,10 +65,18 @@ export class AggregationService {
     const mergedTokens = this.mergeTokens(allTokens);
     console.log(`Merged ${allTokens.length} raw tokens into ${mergedTokens.length} unique tokens`);
 
-    // Removed Postgres 7d aggregate enrichment.
     // Compute 7d volume approximation from available 24h volume (fallback-only approach).
     for (const t of mergedTokens) {
       t.volume_7d = t.volume_7d ?? ((t.volume_24h ?? t.volume_sol) * 7);
+    }
+
+    // Calculate 7-day price changes using historical snapshots
+    await this.enrichWith7DayChanges(mergedTokens);
+
+    // Log sample of 7d changes for debugging
+    const tokensWithChange = mergedTokens.filter(t => t.price_7d_change !== undefined);
+    if (tokensWithChange.length > 0) {
+      console.log(`✓ Calculated 7d changes for ${tokensWithChange.length} tokens`);
     }
 
       // Enrich tokens with USD conversions using CoinGecko (SOL -> USD) with timeout
@@ -138,8 +146,9 @@ export class AggregationService {
           volume_24h: Math.max(existing.volume_24h || 0, token.volume_24h || 0),
           liquidity_sol: Math.max(existing.liquidity_sol, token.liquidity_sol),
           transaction_count: Math.max(existing.transaction_count, token.transaction_count),
-          price_1hr_change: existing.price_1hr_change !== 0 ? existing.price_1hr_change : token.price_1hr_change,
-          price_24hr_change: existing.price_24hr_change !== 0 ? existing.price_24hr_change : token.price_24hr_change,
+          // Fix: prefer non-zero changes (DexScreener has real data, Jupiter returns 0)
+          price_1hr_change: token.price_1hr_change !== 0 ? token.price_1hr_change : existing.price_1hr_change,
+          price_24hr_change: token.price_24hr_change !== 0 ? token.price_24hr_change : existing.price_24hr_change,
           protocol: existing.protocol !== 'Unknown' ? existing.protocol : token.protocol,
           last_updated: Math.max(existing.last_updated, token.last_updated),
           source: `${existing.source},${token.source}`,
@@ -263,5 +272,46 @@ export class AggregationService {
   async invalidateCache(): Promise<void> {
     const keys = await cacheManager.keys('tokens:*');
     await Promise.all(keys.map((key) => cacheManager.del(key)));
+  }
+
+  /**
+   * Calculate 7-day price changes by comparing current price with price from 7 days ago
+   * Stores daily price snapshots in Redis with 8-day TTL
+   */
+  private async enrichWith7DayChanges(tokens: TokenData[]): Promise<void> {
+    try {
+      const now = Date.now();
+      
+      // Process tokens in parallel for speed
+      await Promise.all(tokens.map(async (token) => {
+        try {
+          const priceKey = `price_history:${token.token_address}`;
+          
+          // Get historical price from 7 days ago
+          const historicalData = await cacheManager.get<{ price: number; timestamp: number }>(priceKey);
+          
+          if (historicalData && token.price_sol > 0) {
+            // Calculate percentage change
+            const oldPrice = historicalData.price;
+            if (oldPrice > 0) {
+              token.price_7d_change = ((token.price_sol - oldPrice) / oldPrice) * 100;
+            }
+          }
+          
+          // Store current price snapshot if enough time has passed (only update once per day)
+          if (!historicalData || (now - historicalData.timestamp) >= (24 * 60 * 60 * 1000)) {
+            await cacheManager.set(
+              priceKey,
+              { price: token.price_sol, timestamp: now },
+              8 * 24 * 60 * 60 // 8 days TTL (7 days + 1 day buffer)
+            );
+          }
+        } catch (err) {
+          // Ignore individual token errors
+        }
+      }));
+    } catch (error) {
+      console.warn('Failed to enrich 7-day price changes:', error);
+    }
   }
 }
