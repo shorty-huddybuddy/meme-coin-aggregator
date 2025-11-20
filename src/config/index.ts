@@ -58,11 +58,11 @@ const parseRedisUrl = () => {
     }
   }
   
-  // Support Railway's individual env vars
+  // Support Railway's individual env vars OR use Railway private network
   const config = {
-    host: process.env.REDISHOST || process.env.REDIS_HOST || 'redis',
+    host: process.env.REDISHOST || process.env.REDIS_HOST || 'redis_databse.railway.internal',
     port: parseInt(process.env.REDISPORT || process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDISPASSWORD || process.env.REDIS_PASSWORD || undefined,
+    password: process.env.REDISPASSWORD || process.env.REDIS_PASSWORD || 'cBsXIKYigAYYsYPYeYpGjmAVYBCHSiRl',
   };
   
   console.log('✓ Using individual env vars:');
