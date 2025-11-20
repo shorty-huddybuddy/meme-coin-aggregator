@@ -4,14 +4,14 @@ dotenv.config();
 
 // Parse Redis URL if provided (Railway format)
 const parseRedisUrl = () => {
-  // Debug: Log all Redis-related env vars
+  // Debug: Log all Redis-related env vars with actual values (masked)
   console.log('🔍 Checking Redis environment variables:');
-  console.log('  REDIS_URL:', process.env.REDIS_URL ? '✓ Set' : '✗ Not set');
+  console.log('  REDIS_URL:', process.env.REDIS_URL ? '✓ Set' : '✗ Not set', process.env.REDIS_URL ? `(${process.env.REDIS_URL.substring(0, 20)}...)` : '');
   console.log('  REDIS_PRIVATE_URL:', process.env.REDIS_PRIVATE_URL ? '✓ Set' : '✗ Not set');
-  console.log('  REDIS_PUBLIC_URL:', process.env.REDIS_PUBLIC_URL ? '✓ Set' : '✗ Not set');
-  console.log('  REDISHOST:', process.env.REDISHOST ? '✓ Set' : '✗ Not set');
-  console.log('  REDISPORT:', process.env.REDISPORT ? '✓ Set' : '✗ Not set');
-  console.log('  REDISPASSWORD:', process.env.REDISPASSWORD ? '✓ Set' : '✗ Not set');
+  console.log('  REDIS_PUBLIC_URL:', process.env.REDIS_PUBLIC_URL ? '✓ Set' : '✗ Not set', process.env.REDIS_PUBLIC_URL ? `(${process.env.REDIS_PUBLIC_URL.substring(0, 20)}...)` : '');
+  console.log('  REDISHOST:', process.env.REDISHOST ? '✓ Set' : '✗ Not set', process.env.REDISHOST || '');
+  console.log('  REDISPORT:', process.env.REDISPORT ? '✓ Set' : '✗ Not set', process.env.REDISPORT || '');
+  console.log('  REDISPASSWORD:', process.env.REDISPASSWORD ? '✓ Set' : '✗ Not set', process.env.REDISPASSWORD ? '(hidden)' : '');
   
   // Railway priority: REDIS_PRIVATE_URL > REDIS_URL > individual vars
   const redisUrl = process.env.REDIS_PRIVATE_URL || process.env.REDIS_URL || process.env.REDIS_PUBLIC_URL;
