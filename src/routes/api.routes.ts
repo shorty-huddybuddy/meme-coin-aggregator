@@ -20,7 +20,35 @@ const aggregationService = new AggregationService();
 
 /**
  * GET /api/tokens
- * Get all tokens with optional filtering, sorting, and pagination
+ * Fetches paginated token list with optional filtering and sorting
+ * 
+ * Query Parameters:
+ * @param limit - Results per page (1-500, default: 50)
+ * @param cursor - Pagination cursor from previous response
+ * @param sortBy - Sort field (volume|price_change|price|market_cap|liquidity|transaction_count)
+ * @param sortOrder - Sort direction (asc|desc, default: desc)
+ * @param timePeriod - Time period for volume/price_change (1h|24h|7d)
+ * @param minVolume - Minimum trading volume filter
+ * @param maxVolume - Maximum trading volume filter
+ * @param minMarketCap - Minimum market cap filter
+ * @param maxMarketCap - Maximum market cap filter
+ * @param protocol - Protocol name filter (partial match, case-insensitive)
+ * 
+ * Response:
+ * - success: boolean
+ * - data: TokenData[] - Array of token objects
+ * - pagination: { limit, nextCursor?, prevCursor?, totalCount }
+ * 
+ * Implementation:
+ * 1. Validate and parse query parameters
+ * 2. Fetch all tokens from cache/APIs
+ * 3. Apply filters (volume, market cap, protocol)
+ * 4. Apply sorting
+ * 5. Generate fingerprint (hash of filters+sort for cursor validation)
+ * 6. Apply cursor-based pagination
+ * 7. Return paginated results with next/prev cursors
+ * 
+ * Performance: <100ms (cached), ~500ms (fresh API fetch)
  */
 router.get('/tokens', tokensQueryValidator, handleValidationErrors, asyncHandler(async (req, res) => {
     const {

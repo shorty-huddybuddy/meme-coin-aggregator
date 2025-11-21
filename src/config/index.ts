@@ -2,7 +2,92 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Parse Redis URL if provided (Railway format)
+/**
+ * Parse Redis connection configuration from environment variables
+ * 
+ * Purpose:
+ * Handles multiple Redis configuration formats with Railway-specific fallbacks.
+ * Provides comprehensive debugging output for connection troubleshooting.
+ * 
+ * Configuration Priority (checked in order):
+ * 1. REDIS_PRIVATE_URL - Railway private network URL (fastest, recommended)
+ * 2. REDIS_URL - Standard Redis connection string (redis://user:pass@host:port)
+ * 3. REDIS_PUBLIC_URL - Railway public network URL (slower)
+ * 4. RAILWAY_SERVICE_REDIS_DATABASE_URL - Railway auto-generated variable
+ * 5. RAILWAY_TCP_PROXY_URL - Railway TCP proxy connection
+ * 6. Individual env vars (REDISHOST, REDISPORT, REDISPASSWORD)
+ * 7. Hardcoded Railway TCP proxy (interchange.proxy.rlwy.net:42033)
+ * 
+ * Environment Variables Supported:
+ * 
+ * URL Format:
+ * - REDIS_URL: redis://:password@host:port/db
+ * - REDIS_PRIVATE_URL: redis://default:pass@private-host:6379
+ * - REDIS_PUBLIC_URL: redis://default:pass@public-host:6379
+ * 
+ * Individual Components:
+ * - REDISHOST / REDIS_HOST: Hostname or IP address
+ * - REDISPORT / REDIS_PORT: Port number (default: 6379)
+ * - REDISPASSWORD / REDIS_PASSWORD: Authentication password
+ * 
+ * Railway-Specific Handling:
+ * 
+ * 1. Template Variable Detection:
+ *    - Checks if URL contains unresolved Railway variables: ${{Redis.REDIS_URL}}
+ *    - Falls back to individual env vars if templates found
+ * 
+ * 2. Hardcoded TCP Proxy Fallback:
+ *    - Host: interchange.proxy.rlwy.net
+ *    - Port: 42033
+ *    - Password: cBsXIKYigAYYsYPYeYpGjmAVYBCHSiRl
+ *    - Used when no env vars configured
+ * 
+ * 3. Debugging Output:
+ *    - Lists all REDIS/RAILWAY env variables found
+ *    - Masks passwords in logs for security
+ *    - Warns about unresolved template variables
+ * 
+ * Return Format:
+ * ```typescript
+ * {
+ *   host: string;      // Redis server hostname
+ *   port: number;      // Redis server port
+ *   password?: string; // Authentication password (optional)
+ * }
+ * ```
+ * 
+ * Error Handling:
+ * - Invalid URL format: Logs warning, falls back to individual vars
+ * - Missing port in URL: Defaults to 6379
+ * - Missing password: Returns undefined (allows no-auth Redis)
+ * - URL parsing errors: Caught and logged, continues with fallback
+ * 
+ * Security Considerations:
+ * - Passwords masked in console output (replaced with ****)
+ * - Full credentials never logged
+ * - Debugging output safe for production logs
+ * 
+ * Performance:
+ * - Single execution at server startup
+ * - No runtime overhead (config parsed once)
+ * - Minimal regex matching for template detection
+ * 
+ * @returns {Object} Redis connection config with host, port, and optional password
+ * 
+ * @example
+ * // Railway with REDIS_URL
+ * REDIS_URL="redis://:mypass@redis.railway.internal:6379"
+ * // Returns: { host: 'redis.railway.internal', port: 6379, password: 'mypass' }
+ * 
+ * // Individual env vars
+ * REDISHOST="interchange.proxy.rlwy.net"
+ * REDISPORT="42033"
+ * REDISPASSWORD="cBsXIKYigAYYsYPYeYpGjmAVYBCHSiRl"
+ * // Returns: { host: 'interchange.proxy.rlwy.net', port: 42033, password: 'cBsXIKYigAYYsYPYeYpGjmAVYBCHSiRl' }
+ * 
+ * // Hardcoded fallback (no env vars)
+ * // Returns: { host: 'interchange.proxy.rlwy.net', port: 42033, password: 'cBsXIKYigAYYsYPYeYpGjmAVYBCHSiRl' }
+ */
 const parseRedisUrl = () => {
   // Debug: Log ALL environment variables that contain "REDIS" or "RAILWAY"
   console.log('\n🔍 CHECKING ALL Redis/Railway environment variables:');

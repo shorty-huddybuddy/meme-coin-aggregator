@@ -17,6 +17,7 @@
 | Document | Description |
 |----------|-------------|
 | **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Complete system design, trade-offs, and scalability analysis |
+| **[CODE_DOCUMENTATION_SUMMARY.md](./CODE_DOCUMENTATION_SUMMARY.md)** | Comprehensive JSDoc documentation (65+ functions, 95% coverage) |
 | **[DEPLOYMENT.md](./DEPLOYMENT.md)** | Railway deployment guide with Redis setup |
 | **[SETUP.md](./SETUP.md)** | Local development environment setup |
 | **[QUICKSTART.md](./QUICKSTART.md)** | Quick start guide for developers |

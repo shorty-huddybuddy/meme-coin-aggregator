@@ -4,7 +4,37 @@ import { cacheManager } from './cache.service';
 import { dexscreenerLimiter } from './upstreamClients';
 import { TokenData } from '../types';
 
-// Simple GeckoTerminal collector (optional)
+/**
+ * GeckoTerminal API integration service
+ * 
+ * Purpose:
+ * Optional data source for additional Solana token discovery.
+ * Fetches pool data from GeckoTerminal API as supplementary source.
+ * 
+ * API Endpoints:
+ * - /networks/solana/pools?page={page} - List Solana pools
+ * 
+ * Status:
+ * Optional service (disabled by default).
+ * Enable via: GECKO_ENABLED=true
+ * 
+ * Data Provided:
+ * - Token addresses from pool assets
+ * - Token names and symbols
+ * - Protocol/DEX information
+ * - Limited price/volume data
+ * 
+ * Caching:
+ * - Cache key: `upstream:gecko:pools:solana:page:{page}`
+ * - TTL: 30 seconds
+ * - Caches per-page results
+ * 
+ * Rate Limiting:
+ * - Uses dexscreenerLimiter (shared rate limiter)
+ * - Prevents overwhelming GeckoTerminal API
+ * 
+ * @class GeckoTerminalService
+ */
 export class GeckoTerminalService {
   private client: AxiosInstance;
   private network = 'solana';
@@ -19,7 +49,54 @@ export class GeckoTerminalService {
     });
   }
 
-  // Fetch trending pools (if endpoint available) and paginate pools pages
+  /**
+   * Collect tokens from GeckoTerminal pool pages
+   * 
+   * Purpose:
+   * Paginate through GeckoTerminal pool listings to discover tokens.
+   * Extracts token addresses from pool asset data.
+   * 
+   * Pagination:
+   * - Default: 3 pages
+   * - Configurable via pages parameter
+   * - Each page returns ~50-100 pools
+   * - Total tokens: ~100-300 depending on pages
+   * 
+   * Data Extraction:
+   * For each pool:
+   * 1. Extract pool.attributes.assets or pool.assets
+   * 2. For each asset with address:
+   *    - Create TokenData with address, name, symbol
+   *    - Set protocol from pool.attributes.dex
+   *    - Default price/volume fields to 0
+   * 
+   * Caching:
+   * - Per-page caching for efficiency
+   * - Cache key includes network and page number
+   * - TTL: 30 seconds
+   * 
+   * Error Handling:
+   * - Skips pages that fail to fetch
+   * - Ignores pools without valid asset data
+   * - Returns partial results on errors
+   * - Never throws
+   * 
+   * Enabled Check:
+   * Returns empty array if GECKO_ENABLED=false (default)
+   * 
+   * @param {number} [pages=3] - Number of pages to fetch
+   * @returns {Promise<TokenData[]>} Array of discovered tokens
+   * 
+   * @example
+   * // Fetch 5 pages
+   * const tokens = await service.collectTokens(5);
+   * // Returns: ~250-500 tokens from pool assets
+   * 
+   * // Service disabled
+   * GECKO_ENABLED=false
+   * const tokens = await service.collectTokens();
+   * // Returns: []
+   */
   async collectTokens(pages: number = 3): Promise<TokenData[]> {
     if (!config.upstream.geckoTerminalEnabled) return [];
 

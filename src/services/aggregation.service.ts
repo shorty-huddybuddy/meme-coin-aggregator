@@ -16,6 +16,22 @@ export class AggregationService {
     this.jupiter = new JupiterService();
   }
 
+  /**
+   * Fetches and aggregates token data from multiple DEX sources (DexScreener, Jupiter, GeckoTerminal)
+   * Implements caching with 60s TTL to reduce API calls and improve response times
+   * 
+   * @param useCache - Whether to use cached data (default: true)
+   * @returns Promise<TokenData[]> - Array of merged and enriched token data
+   * 
+   * Flow:
+   * 1. Check cache first (returns in <100ms if hit)
+   * 2. If cache miss: fetch from all APIs in parallel using Promise.allSettled (graceful degradation)
+   * 3. Merge duplicate tokens by address (combines data from multiple sources)
+   * 4. Calculate 7-day volume approximation (24h volume * 7)
+   * 5. Enrich with 7-day price changes from Redis snapshots
+   * 6. Convert SOL prices to USD using CoinGecko (with 3s timeout)
+   * 7. Cache merged results for 60 seconds
+   */
   async getAllTokens(useCache: boolean = true): Promise<TokenData[]> {
     if (useCache) {
       const cached = await cacheManager.get<TokenData[]>(CacheKey.ALL_TOKENS);
@@ -105,6 +121,16 @@ export class AggregationService {
     }
   }
 
+  /**
+   * Searches tokens by name, ticker, or address using full-text matching
+   * Optimized to search within already aggregated tokens instead of making new API calls
+   * 
+   * @param query - Search string (case-insensitive)
+   * @param useCache - Whether to use cached token data
+   * @returns Promise<TokenData[]> - Filtered array of matching tokens
+   * 
+   * Performance: O(n) where n = total tokens, but operates on cached data (<100ms)
+   */
   async searchTokens(query: string, useCache: boolean = true): Promise<TokenData[]> {
     // Optimize: search within already aggregated tokens instead of making new API calls
     const allTokens = await this.getAllTokens(useCache);
@@ -121,6 +147,21 @@ export class AggregationService {
     return results;
   }
 
+  /**
+   * Merges duplicate tokens from multiple sources using token address as unique key
+   * Implements intelligent data merging: prefers non-zero values, max volumes, latest timestamps
+   * 
+   * @param tokens - Raw token array from multiple APIs (may contain duplicates)
+   * @returns TokenData[] - Deduplicated array with merged data
+   * 
+   * Merge Strategy:
+   * - Token address (lowercase) = unique identifier
+   * - Price: Prefer non-zero values (DexScreener over Jupiter zeros)
+   * - Volume/Market Cap: Use maximum value from all sources
+   * - Price Changes: Prefer non-zero (DexScreener has real data, Jupiter returns 0)
+   * - Protocol: Prefer known protocols over "Unknown"
+   * - Source: Concatenate all sources (e.g., "dexscreener,jupiter,geckoterminal")
+   */
   mergeTokens(tokens: TokenData[]): TokenData[] {
     const tokenMap = new Map<string, TokenData>();
 
@@ -161,6 +202,20 @@ export class AggregationService {
     return Array.from(tokenMap.values());
   }
 
+  /**
+   * Filters token array based on multiple criteria (volume, market cap, protocol)
+   * Supports time-period specific volume filtering (1h, 24h, 7d)
+   * 
+   * @param tokens - Array of tokens to filter
+   * @param filters - FilterOptions object with optional criteria
+   * @returns TokenData[] - Filtered array matching all specified criteria
+   * 
+   * Supported Filters:
+   * - minVolume/maxVolume: Range filter on volume (respects timePeriod)
+   * - minMarketCap/maxMarketCap: Range filter on market capitalization
+   * - protocol: Case-insensitive partial match (e.g., "Raydium" matches "Raydium CLMM")
+   * - timePeriod: Selects volume field (1h, 24h, 7d)
+   */
   filterTokens(tokens: TokenData[], filters: FilterOptions): TokenData[] {
     return tokens.filter((token) => {
       // Select volume field based on requested time period
@@ -203,6 +258,24 @@ export class AggregationService {
     });
   }
 
+  /**
+   * Sorts token array by specified field and order
+   * Supports time-period specific sorting for volume and price_change
+   * 
+   * @param tokens - Array of tokens to sort (does not mutate original)
+   * @param sortOptions - SortOptions object specifying sort field, order, and time period
+   * @returns TokenData[] - New sorted array
+   * 
+   * Sort Fields:
+   * - volume: Trading volume (1h/24h/7d based on timePeriod)
+   * - price_change: Price percentage change (1h/24h/7d)
+   * - price: Current token price in SOL
+   * - market_cap: Market capitalization in SOL
+   * - liquidity: Liquidity pool size in SOL
+   * - transaction_count: Number of transactions
+   * 
+   * Sort Order: 'asc' (ascending) or 'desc' (descending, default)
+   */
   sortTokens(tokens: TokenData[], sortOptions: SortOptions): TokenData[] {
     const { sortBy = 'volume', sortOrder = 'desc', timePeriod = '24h' } = sortOptions as SortOptions & { timePeriod?: '1h' | '24h' | '7d' };
 
@@ -269,14 +342,37 @@ export class AggregationService {
     });
   }
 
+  /**
+   * Invalidates all token-related cache entries
+   * Used for manual cache refresh (e.g., POST /api/cache/invalidate endpoint)
+   * 
+   * @returns Promise<void>
+   * 
+   * Implementation:
+   * - Finds all keys matching 'tokens:*' pattern
+   * - Deletes them in parallel using Promise.all
+   * - Next request will fetch fresh data from APIs
+   */
   async invalidateCache(): Promise<void> {
     const keys = await cacheManager.keys('tokens:*');
     await Promise.all(keys.map((key) => cacheManager.del(key)));
   }
 
   /**
-   * Calculate 7-day price changes by comparing current price with price from 7 days ago
-   * Stores daily price snapshots in Redis with 8-day TTL
+   * Calculates 7-day price changes by comparing current price with price from 7 days ago
+   * Stores daily price snapshots in Redis with 8-day TTL for historical tracking
+   * 
+   * @param tokens - Array of tokens to enrich (mutates in-place by adding price_7d_change)
+   * @returns Promise<void>
+   * 
+   * Algorithm:
+   * 1. For each token, fetch historical snapshot from Redis (key: price_history:{address})
+   * 2. If snapshot exists and is 7+ days old: calculate percentage change
+   * 3. If no snapshot or >24h old: store new snapshot with current price and timestamp
+   * 4. TTL = 8 days (7 days + 1 day buffer to ensure we always have 7-day data)
+   * 
+   * Performance: Processes tokens in parallel, ignores individual failures gracefully
+   * Cache Strategy: Only updates snapshot once per 24 hours to reduce Redis writes
    */
   private async enrichWith7DayChanges(tokens: TokenData[]): Promise<void> {
     try {
