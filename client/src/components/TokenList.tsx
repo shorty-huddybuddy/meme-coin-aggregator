@@ -55,11 +55,6 @@ export function TokenList() {
     };
   }, []);
 
-  // Auto-apply filters when they change
-  useEffect(() => {
-    applyFilters();
-  }, [timePeriod, minVolumeInput, protocol, sortBy, sortOrder, pageSize, searchQuery]);
-
   async function fetchTokens(cursor?: string) {
     setLoading(true);
     try {
@@ -99,8 +94,6 @@ export function TokenList() {
       setNextCursor(res.pagination?.nextCursor);
       setPrevCursor(res.pagination?.prevCursor);
       setTotalCount(res.pagination?.totalCount);
-      // Update websocket subscription filters so server-side broadcasts are narrowed
-      wsService.updateFilters(filters);
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch tokens', e);
@@ -114,6 +107,29 @@ export function TokenList() {
     setNextCursor(undefined);
     setPrevCursor(undefined);
     fetchTokens(undefined);
+    
+    // Update websocket subscription filters so server-side broadcasts are narrowed
+    function parseVolumeInput(input: string): number | undefined {
+      if (!input) return undefined;
+      const s = input.trim().toLowerCase().replace(/,/g, '');
+      const match = s.match(/^([\d.]+)\s*([kmb])?$/);
+      if (!match) {
+        const asNum = Number(s);
+        return Number.isFinite(asNum) ? asNum : undefined;
+      }
+      let num = Number(match[1]);
+      const suffix = match[2];
+      if (isNaN(num)) return undefined;
+      if (suffix === 'k') num *= 1e3;
+      else if (suffix === 'm') num *= 1e6;
+      else if (suffix === 'b') num *= 1e9;
+      return num;
+    }
+    
+    const parsedMin = parseVolumeInput(minVolumeInput);
+    const filters: FilterOptions = { timePeriod, protocol } as FilterOptions;
+    if (parsedMin !== undefined) filters.minVolume = parsedMin;
+    wsService.updateFilters(filters);
   }
 
   // Cursor navigation: go to given cursor (prev/next)
