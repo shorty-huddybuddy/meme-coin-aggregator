@@ -384,6 +384,16 @@ export class WebSocketService {
       // Debug logs
       // eslint-disable-next-line no-console
       console.log(`Broadcast cycle: fetched ${tokens.length} tokens, updates=${updates.length}, spikes=${volumeSpikes.length}`);
+      
+      // Log which tokens were updated
+      if (updates.length > 0) {
+        updates.forEach(token => {
+          const prev = this.previousTokens.get(token.token_address);
+          const priceChange = prev ? ((token.price_sol - prev.price_sol) / prev.price_sol * 100).toFixed(2) : 'N/A';
+          const volumeChange = prev ? ((token.volume_sol - prev.volume_sol) / prev.volume_sol * 100).toFixed(2) : 'N/A';
+          console.log(`  📊 ${token.symbol || 'Unknown'} (${token.token_address.slice(0, 8)}...): Price ${priceChange}%, Volume ${volumeChange}%`);
+        });
+      }
 
       // Broadcast updates with per-socket filter support
       if (updates.length > 0 || volumeSpikes.length > 0) {
