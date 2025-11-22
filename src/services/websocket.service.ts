@@ -391,7 +391,7 @@ export class WebSocketService {
           const prev = this.previousTokens.get(token.token_address);
           const priceChange = prev ? ((token.price_sol - prev.price_sol) / prev.price_sol * 100).toFixed(2) : 'N/A';
           const volumeChange = prev ? ((token.volume_sol - prev.volume_sol) / prev.volume_sol * 100).toFixed(2) : 'N/A';
-          console.log(`  📊 ${token.symbol || 'Unknown'} (${token.token_address.slice(0, 8)}...): Price ${priceChange}%, Volume ${volumeChange}%`);
+          console.log(`  📊 ${token.token_ticker || 'Unknown'} (${token.token_address.slice(0, 8)}...): Price ${priceChange}%, Volume ${volumeChange}%`);
         });
       }
 
