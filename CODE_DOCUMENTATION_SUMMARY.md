@@ -197,7 +197,7 @@ GeckoTerminal API integration (optional).
 ### 6. **src/services/websocket.service.ts** ✅ COMPLETE
 
 #### Class: `WebSocketService`
-Real-time token updates via WebSocket.
+Real-time token updates via WebSocket with live logging.
 
 **✅ Documented Functions (5/5):**
 
@@ -205,7 +205,11 @@ Real-time token updates via WebSocket.
    - Overview: Real-time price/volume updates
    - Events: initial_data, price_update, volume_spike, subscribed
    - Features: Per-client filtering, change detection
-   - Scheduler: 3s polling interval
+   - Scheduler: 1s polling interval (1000ms)
+   - **Live Logging**: 
+     - Backend: Logs broadcast cycles with token details and % changes
+     - Frontend: Console logs with emoji indicators (🔵 initial, 🟢 updates, 📈 spikes)
+     - Example: `📊 BONK (7bPqXYK...): Price +0.15%, Volume +5.23%`
 
 2. **`setupSocketHandlers()` (private)**
    - Purpose: Configure connection/subscription handlers
@@ -216,17 +220,23 @@ Real-time token updates via WebSocket.
    - Purpose: Send initial snapshot to client
    - Data Source: Cached tokens (<50ms)
    - Filtering: Applied per client subscription
+   - **Logging**: `🔵 WebSocket: Initial data received - X tokens`
 
 4. **`startUpdateScheduler()`**
    - Purpose: Begin periodic update polling
-   - Interval: 3000ms (configurable)
+   - Interval: 1000ms (real-time trading platform speed)
    - Idempotent: Safe to call multiple times
 
 5. **`broadcastUpdates()` (private)**
    - Purpose: Detect changes and broadcast to clients
-   - Price Change: >1% threshold
-   - Volume Spike: >50% increase
+   - Price Change: >0.1% threshold (catches micro-movements)
+   - Volume Spike: >20% increase
    - Per-Client: Filtered by subscription preferences
+   - **Logging**: 
+     - Summary: `Broadcast cycle: fetched X tokens, updates=Y, spikes=Z`
+     - Details: Each updated token with symbol, address, price %, volume %
+     - Frontend: `🟢 WebSocket: Price update received - X tokens changed`
+     - Example: `📊 WIF (EKpQGSJ...): Price -0.12%, Volume +2.10%`
 
 ---
 
