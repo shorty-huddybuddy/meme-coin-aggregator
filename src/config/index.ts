@@ -190,7 +190,7 @@ export const config = {
     window: parseInt(process.env.RATE_LIMIT_WINDOW || '60000', 10), // milliseconds
   },
   websocket: {
-    updateInterval: parseInt(process.env.WS_UPDATE_INTERVAL || '3000', 10), // 3s updates like DexScreener
+    updateInterval: parseInt(process.env.WS_UPDATE_INTERVAL || '1500', 10), // 1.5s updates for faster real-time feel
   },
   dev: {
     expandUpstream: (process.env.DEV_EXPAND_UPSTREAM || 'false').toLowerCase() === 'true',

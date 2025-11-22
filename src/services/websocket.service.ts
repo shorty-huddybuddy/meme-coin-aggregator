@@ -361,11 +361,11 @@ export class WebSocketService {
           continue;
         }
 
-        // Check for price changes
-        const priceChanged = Math.abs(token.price_sol - previous.price_sol) > previous.price_sol * 0.01; // 1% change
+        // Check for price changes (0.5% threshold for more frequent updates)
+        const priceChanged = Math.abs(token.price_sol - previous.price_sol) > previous.price_sol * 0.005; // 0.5% change
 
-        // Check for volume spikes (>50% increase)
-        const volumeSpike = token.volume_sol > previous.volume_sol * 1.5;
+        // Check for volume spikes (>30% increase for more sensitivity)
+        const volumeSpike = token.volume_sol > previous.volume_sol * 1.3;
 
         if (priceChanged || volumeSpike) {
           updates.push(token);
