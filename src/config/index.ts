@@ -204,16 +204,16 @@ export const config = {
   },
   upstream: {
     // requests per minute and concurrency defaults; can be overridden with env vars
-    dexscreenerRatePerMinute: parseInt(process.env.DEXSCREENER_RATE_PER_MINUTE || '150', 10),
-    jupiterRatePerMinute: parseInt(process.env.JUPITER_RATE_PER_MINUTE || '150', 10),
-    dexscreenerConcurrency: parseInt(process.env.DEXSCREENER_CONCURRENCY || '3', 10),
-    jupiterConcurrency: parseInt(process.env.JUPITER_CONCURRENCY || '3', 10),
-    // discovery queries and per-query caps (balanced for speed and coverage)
-    dexscreenerQueries: (process.env.DEXSCREENER_QUERIES || 'SOL,BONK,WIF,POPCAT,PEPE,TRUMP,MEME').split(','),
-    jupiterQueries: (process.env.JUPITER_QUERIES || 'SOL,BONK,WIF,PEPE').split(','),
-    // Balanced defaults for good token count with reasonable speed
-    dexscreenerPerQueryCap: parseInt(process.env.DEXSCREENER_PER_QUERY_CAP || '40', 10),
-    jupiterPerQueryCap: parseInt(process.env.JUPITER_PER_QUERY_CAP || '30', 10),
+    dexscreenerRatePerMinute: parseInt(process.env.DEXSCREENER_RATE_PER_MINUTE || '200', 10),
+    jupiterRatePerMinute: parseInt(process.env.JUPITER_RATE_PER_MINUTE || '200', 10),
+    dexscreenerConcurrency: parseInt(process.env.DEXSCREENER_CONCURRENCY || '4', 10),
+    jupiterConcurrency: parseInt(process.env.JUPITER_CONCURRENCY || '4', 10),
+    // discovery queries and per-query caps (balanced for good coverage without overwhelming)
+    dexscreenerQueries: (process.env.DEXSCREENER_QUERIES || 'SOL,BONK,WIF,POPCAT,PEPE,TRUMP,MEME,USDC,RAY,JUP').split(','),
+    jupiterQueries: (process.env.JUPITER_QUERIES || 'SOL,BONK,WIF,PEPE,USDC,RAY').split(','),
+    // Balanced caps for ~500-600 total tokens (sweet spot for performance)
+    dexscreenerPerQueryCap: parseInt(process.env.DEXSCREENER_PER_QUERY_CAP || '50', 10),
+    jupiterPerQueryCap: parseInt(process.env.JUPITER_PER_QUERY_CAP || '40', 10),
     geckoTerminalEnabled: (process.env.GECKO_ENABLED || 'true').toLowerCase() === 'true',
     geckoTerminalBase: process.env.GECKO_BASE || 'https://api.geckoterminal.com/api/v2',
   },
