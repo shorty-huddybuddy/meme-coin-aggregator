@@ -25,8 +25,11 @@ export function TokenList() {
   useEffect(() => {
     const handleUpdate = (update: WebSocketUpdate) => {
       if (update.type === 'initial_data' && update.tokens) {
+        console.log('🔵 WebSocket: Initial data received -', update.tokens.length, 'tokens');
         setTokens(update.tokens);
       } else if (update.type === 'price_update' && update.updates) {
+        console.log('🟢 WebSocket: Price update received -', update.updates.length, 'tokens changed');
+        
         // Merge updates into existing tokens
         setTokens((prev) => {
           const tokenMap = new Map(prev.map((t) => [t.token_address, t]));
@@ -39,7 +42,7 @@ export function TokenList() {
         setUpdatedTokens(updated);
         setTimeout(() => setUpdatedTokens(new Set()), 2000);
       } else if (update.type === 'volume_spike' && update.spikes) {
-        console.log('Volume spikes detected:', update.spikes.length);
+        console.log('📈 WebSocket: Volume spikes detected -', update.spikes.length, 'tokens');
       }
     };
 
