@@ -183,14 +183,14 @@ export const config = {
     db: parseInt(process.env.REDIS_DB || '0', 10),
   },
   cache: {
-    ttl: parseInt(process.env.CACHE_TTL || '30', 10), // 30s for more real-time updates
+    ttl: parseInt(process.env.CACHE_TTL || '15', 10), // 15s for fresher data
   },
   rateLimit: {
     dexScreener: parseInt(process.env.DEXSCREENER_RATE_LIMIT || '300', 10),
     window: parseInt(process.env.RATE_LIMIT_WINDOW || '60000', 10), // milliseconds
   },
   websocket: {
-    updateInterval: parseInt(process.env.WS_UPDATE_INTERVAL || '1500', 10), // 1.5s updates for faster real-time feel
+    updateInterval: parseInt(process.env.WS_UPDATE_INTERVAL || '1000', 10), // 1s updates like real trading platforms
   },
   dev: {
     expandUpstream: (process.env.DEV_EXPAND_UPSTREAM || 'false').toLowerCase() === 'true',
