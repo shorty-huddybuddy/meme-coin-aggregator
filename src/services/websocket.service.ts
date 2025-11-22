@@ -361,11 +361,11 @@ export class WebSocketService {
           continue;
         }
 
-        // Check for price changes (0.1% threshold for real-time trading feel)
-        const priceChanged = Math.abs(token.price_sol - previous.price_sol) > previous.price_sol * 0.001; // 0.1% change
+        // Check for price changes (0.01% threshold for maximum update frequency)
+        const priceChanged = Math.abs(token.price_sol - previous.price_sol) > previous.price_sol * 0.0001; // 0.01% change
 
-        // Check for volume spikes (>20% increase for high sensitivity)
-        const volumeSpike = token.volume_sol > previous.volume_sol * 1.2;
+        // Check for volume spikes (>10% increase for high sensitivity)
+        const volumeSpike = token.volume_sol > previous.volume_sol * 1.1;
 
         if (priceChanged || volumeSpike) {
           updates.push(token);
