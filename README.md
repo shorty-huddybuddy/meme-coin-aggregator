@@ -6,7 +6,7 @@
 
 ## 🌐 Live Deployment
 
-- **🚀 Production**: [https://meme-coin-aggregator-production.up.railway.app](https://meme-coin-aggregator-production.up.railway.app)
+- **🚀 Production**: [[https://meme-coin-aggregator-production.up.railway.app](https://meme-coin-aggregator-production-403b.up.railway.app/)]
 - **📺 Demo Video**: [Watch on YouTube](https://www.youtube.com/watch?v=sfuD1cMDkY4) | [Previous Version](https://www.youtube.com/watch?v=smVM14sjQOs)
 - **📦 Repository**: [GitHub](https://github.com/shorty-huddybuddy/meme-coin-aggregator)
 
