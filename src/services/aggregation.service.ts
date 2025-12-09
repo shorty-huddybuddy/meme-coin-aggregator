@@ -1,6 +1,7 @@
 import { TokenData, FilterOptions, SortOptions } from '../types';
 import { DexScreenerService } from './dexscreener.service';
 import { JupiterService } from './jupiter.service';
+import { BirdeyeService } from './birdeye.service';
 import { cacheManager } from './cache.service';
 import { CacheKey } from '../types';
 import { coingeckoService } from './coingecko.service';
@@ -10,14 +11,16 @@ import { config } from '../config';
 export class AggregationService {
   private dexScreener: DexScreenerService;
   private jupiter: JupiterService;
+  private birdeye: BirdeyeService;
 
   constructor() {
     this.dexScreener = new DexScreenerService();
     this.jupiter = new JupiterService();
+    this.birdeye = new BirdeyeService();
   }
 
   /**
-   * Fetches and aggregates token data from multiple DEX sources (DexScreener, Jupiter, GeckoTerminal)
+  * Fetches and aggregates token data from multiple DEX sources (DexScreener, Jupiter, Birdeye, GeckoTerminal)
    * Implements caching with 60s TTL to reduce API calls and improve response times
    * 
    * @param useCache - Whether to use cached data (default: true)
@@ -46,11 +49,23 @@ export class AggregationService {
     );
 
     try {
-      const [dexTokens, jupiterTokens, geckoTokens] = await Promise.race([
+      const dexPromise = this.dexScreener.getTrendingTokens();
+      const jupiterPromise = config.upstream.jupiterEnabled
+        ? this.jupiter.getPopularTokens()
+        : Promise.resolve([] as TokenData[]);
+      const birdeyePromise = config.upstream.birdeyeEnabled
+        ? this.birdeye.getTrendingTokens()
+        : Promise.resolve([] as TokenData[]);
+      const geckoPromise = config.upstream.geckoTerminalEnabled
+        ? geckoTerminalService.collectTokens(config.upstream.geckoTerminalPages || 2)
+        : Promise.resolve([] as TokenData[]);
+
+      const [dexTokens, jupiterTokens, birdeyeTokens, geckoTokens] = await Promise.race([
         Promise.allSettled([
-          this.dexScreener.getTrendingTokens(),
-          this.jupiter.getPopularTokens(),
-          geckoTerminalService.collectTokens(2), // 2 pages for better coverage
+          dexPromise,
+          jupiterPromise,
+          birdeyePromise,
+          geckoPromise,
         ]),
         aggregationTimeout
       ]) as PromiseSettledResult<TokenData[]>[];
@@ -69,6 +84,13 @@ export class AggregationService {
       allTokens.push(...jupiterTokens.value);
     } else {
       console.warn('Jupiter failed:', jupiterTokens.reason);
+    }
+
+    if (birdeyeTokens.status === 'fulfilled') {
+      console.log(`Birdeye returned ${birdeyeTokens.value.length} tokens`);
+      allTokens.push(...birdeyeTokens.value);
+    } else {
+      console.warn('Birdeye failed:', birdeyeTokens.reason);
     }
 
       if (geckoTokens.status === 'fulfilled') {

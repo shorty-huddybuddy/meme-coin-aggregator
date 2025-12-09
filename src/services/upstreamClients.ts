@@ -65,4 +65,22 @@ export const jupiterLimiter = new UpstreamRateLimiter(
   config.upstream.jupiterConcurrency
 );
 
-export default { dexscreenerLimiter, jupiterLimiter };
+export const birdeyeLimiter = new UpstreamRateLimiter(
+  config.upstream.birdeyeRatePerMinute,
+  Math.max(1, Math.floor(config.upstream.birdeyeRatePerMinute / 60)),
+  config.upstream.birdeyeConcurrency
+);
+
+export const coinbaseLimiter = new UpstreamRateLimiter(
+  config.upstream.coinbaseRatePerMinute,
+  Math.max(1, Math.floor(config.upstream.coinbaseRatePerMinute / 60)),
+  config.upstream.coinbaseConcurrency
+);
+
+export const coingeckoLimiter = new UpstreamRateLimiter(
+  config.upstream.coingeckoRatePerMinute,
+  Math.max(1, Math.floor(config.upstream.coingeckoRatePerMinute / 60)),
+  config.upstream.coingeckoConcurrency
+);
+
+export default { dexscreenerLimiter, jupiterLimiter, birdeyeLimiter, coinbaseLimiter, coingeckoLimiter };

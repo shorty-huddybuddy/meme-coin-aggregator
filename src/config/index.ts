@@ -201,6 +201,9 @@ export const config = {
   api: {
     dexScreener: 'https://api.dexscreener.com/latest/dex',
     jupiter: 'https://lite-api.jup.ag/tokens/v2',
+    birdeye: process.env.BIRDEYE_BASE || 'https://public-api.birdeye.so',
+    birdeyeApiKey: process.env.BIRDEYE_API_KEY || '',
+    coinbase: process.env.COINBASE_BASE || 'https://api.coinbase.com/v2',
   },
   upstream: {
     // requests per minute and concurrency defaults; can be overridden with env vars
@@ -208,6 +211,16 @@ export const config = {
     jupiterRatePerMinute: parseInt(process.env.JUPITER_RATE_PER_MINUTE || '200', 10),
     dexscreenerConcurrency: parseInt(process.env.DEXSCREENER_CONCURRENCY || '4', 10),
     jupiterConcurrency: parseInt(process.env.JUPITER_CONCURRENCY || '4', 10),
+    jupiterEnabled: (process.env.JUPITER_ENABLED || 'false').toLowerCase() === 'true',
+    birdeyeEnabled: (process.env.BIRDEYE_ENABLED || 'false').toLowerCase() === 'true',
+    birdeyeRatePerMinute: parseInt(process.env.BIRDEYE_RATE_PER_MINUTE || '60', 10),
+    birdeyeConcurrency: parseInt(process.env.BIRDEYE_CONCURRENCY || '1', 10),
+    coinbaseEnabled: (process.env.COINBASE_ENABLED || 'true').toLowerCase() === 'true',
+    coinbaseRatePerMinute: parseInt(process.env.COINBASE_RATE_PER_MINUTE || '60', 10),
+    coinbaseConcurrency: parseInt(process.env.COINBASE_CONCURRENCY || '2', 10),
+    coingeckoEnabled: (process.env.COINGECKO_ENABLED || 'true').toLowerCase() === 'true',
+    coingeckoRatePerMinute: parseInt(process.env.COINGECKO_RATE_PER_MINUTE || '50', 10),
+    coingeckoConcurrency: parseInt(process.env.COINGECKO_CONCURRENCY || '2', 10),
     // discovery queries and per-query caps (balanced for good coverage without overwhelming)
     dexscreenerQueries: (process.env.DEXSCREENER_QUERIES || 'SOL,BONK,WIF,POPCAT,PEPE,TRUMP,MEME,USDC,RAY,JUP').split(','),
     jupiterQueries: (process.env.JUPITER_QUERIES || 'SOL,BONK,WIF,PEPE,USDC,RAY').split(','),
@@ -215,6 +228,7 @@ export const config = {
     dexscreenerPerQueryCap: parseInt(process.env.DEXSCREENER_PER_QUERY_CAP || '50', 10),
     jupiterPerQueryCap: parseInt(process.env.JUPITER_PER_QUERY_CAP || '40', 10),
     geckoTerminalEnabled: (process.env.GECKO_ENABLED || 'true').toLowerCase() === 'true',
+    geckoTerminalPages: parseInt(process.env.GECKO_PAGES || '4', 10),
     geckoTerminalBase: process.env.GECKO_BASE || 'https://api.geckoterminal.com/api/v2',
   },
   coinGecko: {

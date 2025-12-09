@@ -1,6 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 import { config } from '../config';
 import { cacheManager } from './cache.service';
+import { coingeckoLimiter } from './upstreamClients';
+import { exponentialBackoff } from '../utils/helpers';
 
 /**
  * CoinGecko API integration service
@@ -37,6 +39,7 @@ import { cacheManager } from './cache.service';
 class CoinGeckoService {
   private client: AxiosInstance;
   private solCacheKey = 'upstream:coingecko:sol_usd';
+  private marketsCacheKey = 'upstream:coingecko:markets';
 
   constructor() {
     this.client = axios.create({
@@ -44,6 +47,48 @@ class CoinGeckoService {
       timeout: 5000,
       headers: { Accept: 'application/json' },
     });
+  }
+
+  /**
+   * Fetch market data page from CoinGecko
+   * Endpoint: /coins/markets?vs_currency=usd&per_page=250&page=1
+   * Cached per (vs_currency, per_page, page). TTL: 300s
+   */
+  async getMarkets(vsCurrency = 'usd', perPage = 250, page = 1): Promise<any[]> {
+    if (!config.upstream.coingeckoEnabled) return [];
+
+    const cacheKey = `${this.marketsCacheKey}:${vsCurrency}:${perPage}:${page}`;
+    const cached = await cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const response = await exponentialBackoff(() =>
+        coingeckoLimiter.schedule(() =>
+          this.client.get('/coins/markets', {
+            params: {
+              vs_currency: vsCurrency,
+              per_page: perPage,
+              page,
+              order: 'market_cap_desc',
+              sparkline: false,
+            },
+          })
+        )
+      , 3, 800, 6000);
+
+      const data = Array.isArray(response.data) ? response.data : [];
+      await cacheManager.set(cacheKey, data, 300);
+      return data;
+    } catch (e: any) {
+      const status = e?.response?.status;
+      if (status === 429) {
+        console.warn('CoinGecko markets rate-limited (429). Cooling down.');
+        await cacheManager.set(cacheKey, [], 60);
+      } else {
+        console.warn('CoinGecko markets fetch failed', e?.message || e);
+      }
+      return [];
+    }
   }
 
   /**
